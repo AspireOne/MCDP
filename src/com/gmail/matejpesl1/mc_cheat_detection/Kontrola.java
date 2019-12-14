@@ -187,7 +187,8 @@ public class Kontrola extends Thread {
 		
 		String vysledky = "verze programu: " + VERZE_PROGRAMU + "<br><br>"
 				+ "<b>Jméno hráèe:</b> " + jmenoHrace + "<br><br>"
-				+ "<b>ovìøení jména: </b>" + (pravdepodobneNespravneJmeno ? "Za toto jméno pravdìpodobnì nebylo na tomto PC za posledních 15 dní hráno!" : "jméno je pravdìpodobnì správné") + "<br><br>"
+				+ "<b>ovìøení jména: </b>" + (pravdepodobneNespravneJmeno ? 
+						"Za toto jméno pravdìpodobnì nebylo na tomto PC za posledních 15 dní hráno!" : "jméno je pravdìpodobnì správné") + "<br><br>"
 				+ "<b>pravdìpodobný hacker: " + (pravdepodobnyHacker ? "ano</b> - dùvody: " + "<br>" + duvodyProHackera : "ne</b>") + "<br><br>"
 				+ "<b>celkový poèet kontrol provedených na tomto PC: </b><br>" + celkovyPocetKontrol + "<br><br>"
 				+ "<b>Uplynulá doba od pøedešlé kontroly: </b><br>" + (celkovyPocetKontrol <= 1 ?
