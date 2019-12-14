@@ -87,11 +87,11 @@ public class Kontrola extends Thread {
 			dobaOdPosledniKontroly = ziskejRozdilMeziDaty(FORMAT_DATA.format(new Date()), datumPosledniKontroly);	
 		}
 		vypisStavKontroly("2");
-		/* TODO: PØI DISTRIBUCI ODKOMENTOVAT
+		// TODO: PØI DISTRIBUCI ODKOMENTOVAT
 		if (dobaOdPosledniKontroly < 30 && dobaOdPosledniKontroly > 1) {
 			prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
 		}
-		*/
+		
 		long dobaOdPosledniUpravyVersions = ziskejRozdilMeziDaty(FORMAT_DATA.format(new Date()), ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)); 
 		if (dobaOdPosledniUpravyVersions < 15) {
 			pridejDuvodProHackera("Složka versions byla upravována pøed ménì než 15 minutami");
@@ -190,15 +190,18 @@ public class Kontrola extends Thread {
 				+ "<b>ovìøení jména: </b>" + (pravdepodobneNespravneJmeno ? "Za toto jméno pravdìpodobnì nebylo na tomto PC za posledních 15 dní hráno!" : "jméno je pravdìpodobnì správné") + "<br><br>"
 				+ "<b>pravdìpodobný hacker: " + (pravdepodobnyHacker ? "ano</b> - dùvody: " + "<br>" + duvodyProHackera : "ne</b>") + "<br><br>"
 				+ "<b>celkový poèet kontrol provedených na tomto PC: </b><br>" + celkovyPocetKontrol + "<br><br>"
-				+ "<b>Uplynulá doba od pøedešlé kontroly: </b><br>" + (dobaOdPosledniKontroly == 0 ?
+				+ "<b>Uplynulá doba od pøedešlé kontroly: </b><br>" + (celkovyPocetKontrol <= 1 ?
 						"žádné pøedešlé kontroly neprobìhly" : ziskejSlovniRozdilMeziDaty(dobaOdPosledniKontroly, datumPosledniKontroly)) + "<br><br>"
-				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b>" + "<br>" + (nalezeneJmenaHacku.isEmpty() ? "žádné" : nalezeneJmenaHackuStr) + "<br><br>"
-				+ "<b>nalezené klíèové slova v log souborech za posledních 15 dní, které se shodují se jménem hackù:</b>" + "<br>" + (keywordyVLatestLogu == null ? "žádné" : keywordyVLatestLogu) + "<br><br>"
+				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b>" + "<br>" + (nalezeneJmenaHacku.isEmpty() ?
+						"žádné" : nalezeneJmenaHackuStr) + "<br><br>"
+				+ "<b>nalezené klíèové slova v log souborech za posledních 15 dní, které se shodují se jménem hackù:</b>" + "<br>" + (keywordyVLatestLogu == null ?
+						"žádné" : keywordyVLatestLogu) + "<br><br>"
 				+ "<b>názvy souborù ve složce versions v hloubce 1: </b>" + "<br>" + nazvySouboruVeVersions + "<br><br>"
 				+ "<b>Názvy všech \"jar\" souborù ve složce stažené: </b>" + "<br>" + nazvySouboruVeStazenych + "<br><br>"
 				+ "<b>Názvy všech \"jar\" souborù na ploše: </b>" + "<br>" + (nazvySouboruNaPlose == null ? "žádné" : nazvySouboruNaPlose) + "<br><br>"
 				+ "<b>Názvy souborù ve složce .minecraft ve hloubce 1: </b>" + "<br>" + nazvySouboruVMinecraft + "<br><br>"
-				+ "<b>složka versions naposledy upravována pøed: </b>" + "<br>" + ziskejSlovniRozdilMeziDaty(dobaOdPosledniUpravyVersions, ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)) + "<br><br>"
+				+ "<b>složka versions naposledy upravována pøed: </b>" + "<br>" +
+				ziskejSlovniRozdilMeziDaty(dobaOdPosledniUpravyVersions, ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)) + "<br><br>"
 				+ "<b>Chyby pøi  kontrole: </b>" + "<br>" + (chyby.isEmpty() ? "žádné" : chyby);
 
 		Uvod.zmenStav("odesílání výsledkù");
