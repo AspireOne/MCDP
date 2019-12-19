@@ -24,6 +24,7 @@ public class Uvod {
 	public static final String NAZEV_SERVERU = "mc.basicland.cz";
 	public static final String EMAIL_RECIPIENT_ADDRESS = "report@basicland.cz";
 	public static final Pattern NEPOVOLENE_ZNAKY_VE_JMENE = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
+	public static final float VERZE_PROGRAMU = 2.1f;
 	public static final int MAX_DELKA_JMENA = 16;
 	public static final int MIN_DELKA_JMENA = 3;
 	private static JFrame frame;
@@ -45,8 +46,7 @@ public class Uvod {
 	}
 	
 	private static void prepareGUI() {
-		frame = new JFrame("Kontrola - " + NAZEV_SERVERU + " | by matejpesl1@gmail.com");
-		frame.setSize(520, 130);
+		frame = new JFrame("Kontrola - " + NAZEV_SERVERU + " | by matejpesl1@gmail.com [V" + VERZE_PROGRAMU + "]");
 		frame.setResizable(false);
 		frame.setLocationRelativeTo(null);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -128,7 +128,8 @@ public class Uvod {
 		btnPotvrdit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String jmeno = txtfJmeno.getText(); 
-				if (jmeno.length() >= MIN_DELKA_JMENA && jmeno.length() <= MAX_DELKA_JMENA && !NEPOVOLENE_ZNAKY_VE_JMENE.matcher(jmeno).find() && Normalizer.isNormalized(jmeno, Normalizer.Form.NFD)) {
+				if (jmeno.length() >= MIN_DELKA_JMENA && jmeno.length() <= MAX_DELKA_JMENA &&
+						!NEPOVOLENE_ZNAKY_VE_JMENE.matcher(jmeno).find() && Normalizer.isNormalized(jmeno, Normalizer.Form.NFD)) {
 					lblHeader.setText("<html>probíha kontrola podmínek pøed kontrolou...</html>");
 					lblHeader.paintImmediately(lblHeader.getVisibleRect());
 					Podminka nesplnenaPodminka = ziskejNesplnenouPodminku();
@@ -139,8 +140,11 @@ public class Uvod {
 					if (nesplnenaPodminka == null) {
 						if (!new Kontrola().jeJmenoNalezeno(jmeno)) {
 							String[] moznosti = {"I pøesto pokraèovat", "zadat správné jméno"};
-							int vybranaMoznost = JOptionPane.showOptionDialog(null, "<html>Jméno nebylo v PC nalezeno. V pøípadì pokraèování bude informace o zádání potenciálnì cizího jména odeslána. "
-								+ "Opravdu chcete pokraèovat?", "Jméno nenalazeno!", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, moznosti, moznosti[0]);
+							int vybranaMoznost = JOptionPane.showOptionDialog(null,
+								"<html>Jméno nebylo v PC nalezeno. V pøípadì pokraèování bude informace o zádání potenciálnì cizího jména odeslána. "
+										+ "Opravdu chcete pokraèovat?",
+								"Jméno nenalazeno!", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, moznosti, moznosti[0]);
+							
 							if (vybranaMoznost == 0) {
 								zacniKontrolu(jmeno, true);
 								} else {

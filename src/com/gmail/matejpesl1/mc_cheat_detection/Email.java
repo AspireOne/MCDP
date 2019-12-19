@@ -18,18 +18,27 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 public class Email {
-	private static final String SMTP = "smtp.gmail.com";
-	private static final String ODESILATEL = "minecraft.kontrola.PC@gmail.com"; 
+	private static final String SMTP = "smtp.seznam.cz";
+	private static final String ODESILATEL = "minecraft.kontrola.pc@seznam.cz"; 
 	private static final String ALIAS = "Kontrola PC";
-	private static final String HESLO = "!7G0L8TMaTyA1415926535lylek89";
+	private static final String HESLO = "!7G0L8TMaTyA1415926535lylek89?Seznam";
+	private static final int PORT = 465;
 	
 	public static String odesliMail(String prijemce, String predmet, String text, String cestaKSouboru, String jmenoSouboru) throws UncheckedIOException {
 		 Properties prop = System.getProperties();
 		 prop.put("mail.smtp.host", SMTP);
 		 prop.put("mail.smtp.auth", "true");
-		 prop.put("mail.smtp.port", "587");
+		 prop.put("mail.smtp.port", PORT);
 		 prop.put("mail.smtp.starttls.enable", "true");
-		 prop.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+		 prop.put("mail.smtp.ssl.trust", SMTP);
+		 prop.put("mail.smtp.user", ODESILATEL);
+		 prop.put("mail.smtp.password", HESLO);
+		 prop.put("mail.smtp.socketFactory.port", "465");
+		 prop.put("mail.smtp.socketFactory.class",
+		         "javax.net.ssl.SSLSocketFactory");
+		 prop.put("mail.smtp.socketFactory.fallback", "false");
+		 prop.setProperty("mail.smtp.quitwait", "false");
+		 
 	        Session session = Session.getInstance(prop,
 	                new javax.mail.Authenticator() {
 	                    protected PasswordAuthentication getPasswordAuthentication() {

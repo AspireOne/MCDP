@@ -29,7 +29,6 @@ public class Kontrola extends Thread {
 			"wolfram", "impact", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked", "hackclient", "hacked-client",
 			"hack-client", "pandora", "killaura", "kill-aura", "forgehax"));
 	private final ArrayList<String> DEFAULT_LOG_KEYWORDS;
-	public static final float VERZE_PROGRAMU = 2.0f;
 	public static final String KORENOVA_SLOZKA = System.getProperty("user.home");
 	public static final String VLASTNI_SLOZKA_CESTA = KORENOVA_SLOZKA + "\\vysledky";
 	public static final String LOGS_CESTA = System.getProperty("user.home") + "\\AppData\\Roaming\\.minecraft\\logs";
@@ -88,10 +87,11 @@ public class Kontrola extends Thread {
 		}
 		vypisStavKontroly("2");
 		// TODO: PØI DISTRIBUCI ODKOMENTOVAT
+		/*
 		if (dobaOdPosledniKontroly < 30 && dobaOdPosledniKontroly > 1) {
 			prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
 		}
-		
+		*/
 		long dobaOdPosledniUpravyVersions = ziskejRozdilMeziDaty(FORMAT_DATA.format(new Date()), ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)); 
 		if (dobaOdPosledniUpravyVersions < 15) {
 			pridejDuvodProHackera("Složka versions byla upravována pøed ménì než 15 minutami");
@@ -185,7 +185,7 @@ public class Kontrola extends Thread {
 		
 		vypisStavKontroly("13");
 		
-		String vysledky = "verze programu: " + VERZE_PROGRAMU + "<br><br>"
+		String vysledky = "verze programu: " + Uvod.VERZE_PROGRAMU + "<br><br>"
 				+ "<b>Jméno hráèe:</b> " + jmenoHrace + "<br><br>"
 				+ "<b>ovìøení jména: </b>" + (pravdepodobneNespravneJmeno ? 
 						"Za toto jméno pravdìpodobnì nebylo na tomto PC za posledních 15 dní hráno!" : "jméno je pravdìpodobnì správné") + "<br><br>"
@@ -475,7 +475,8 @@ public class Kontrola extends Thread {
 	public void prerusKontrolu(String chyba, boolean ukazUzivateli) {
 		System.err.println(chyba);
 		chyba = ukazUzivateli ? chyba : "";
-		JOptionPane.showMessageDialog(null, "Pøi kontrole došlo k chybì, která zabránila normální funkci programu. Žádná data nebudou odeslána. Chyba: " + chyba, "Chyba", JOptionPane.ERROR_MESSAGE);
+		JOptionPane.showMessageDialog(null, "Pøi kontrole došlo k chybì, která zabránila normální funkci programu. Žádná data nebudou odeslána."
+				+ " Chyba: " + chyba, "Chyba", JOptionPane.ERROR_MESSAGE);
 			zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
 			zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
 		System.exit(0);
