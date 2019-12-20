@@ -11,11 +11,11 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,7 +35,7 @@ public class Kontrola extends Thread {
 	public static final ArrayList<String> DEFAULT_KEYWORDS = new ArrayList<>(Arrays.asList("huzuni", "skillclient", "liquidbounce",
 			"wolfram", "impact", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked", "hackclient", "hacked-client",
 			"hack-client", "pandora", "killaura", "kill-aura", "forgehax"));
-	private final ArrayList<String> DEFAULT_LOG_KEYWORDS;
+	public final ArrayList<String> DEFAULT_LOG_KEYWORDS;
 	public static final String KORENOVA_SLOZKA = System.getProperty("user.home");
 	public static final String VLASTNI_SLOZKA_CESTA = KORENOVA_SLOZKA + "\\vysledky";
 	public static final String LOGS_CESTA = System.getProperty("user.home") + "\\AppData\\Roaming\\.minecraft\\logs";
@@ -47,11 +47,10 @@ public class Kontrola extends Thread {
 	public static final File SLOZKA_VERSIONS = new File(System.getProperty("user.home") + "\\AppData\\Roaming\\.minecraft\\versions");
 	public static final File SLOZKA_MINECRAFT = new File(System.getProperty("user.home") + "\\AppData\\Roaming\\.minecraft");
 	public static final File SLOZKA_STAZENE = new File(Paths.get(System.getProperty("user.home"), "Downloads").toString());
-	public static final SimpleDateFormat FORMAT_DTA = new SimpleDateFormat("d-.MM-yyyy HH:mm:ss");
 	public static final File VLASTNI_SLOZKA = new File(VLASTNI_SLOZKA_CESTA);
 	public static final File PREDESLE_KONTROLY_INFO_TXT = new File(VLASTNI_SLOZKA.getPath() + "\\predesleKontrolyInfo.txt");
 	public static final String ROZDELOVAC_SLOV = " | ";
-	private static final int POCET_RADKU_LOGU_V_NAHLEDU = 700;
+	public static final int POCET_RADKU_LOGU_V_NAHLEDU = 700;
 	private static final File LATEST_ZIP = new File(VLASTNI_SLOZKA + "\\latest.zip");
 	private boolean pravdepodobneNespravneJmeno;
 	private boolean pravdepodobnyHacker;
@@ -69,37 +68,47 @@ public class Kontrola extends Thread {
 	String stav;
 	
 	public Kontrola() {
+		super.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+		    public void uncaughtException(Thread t, Throwable e) {
+		       prerusKontrolu("neošetøená vyjímka", true);
+		    }
+		 });
 		DEFAULT_LOG_KEYWORDS = new ArrayList<>(Arrays.asList("hack", "fly", "antiknockback", "speed",
 				"tpaura", "tp-aura", "regen", "blink", "nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker"));
 		DEFAULT_LOG_KEYWORDS.addAll(DEFAULT_KEYWORDS);
 	}
 	
 	public void zacniKontrolu() {
+		LATEST_ZIP.deleteOnExit();
 		vypisStavKontroly("1");
 		nactiKeywordy();
+		String pocatecniInfo = 0 + "\n" + 0;
 		if (!VLASTNI_SLOZKA.exists()) {
 			boolean slozkaVytvorena = VLASTNI_SLOZKA.mkdir();
 			if (!slozkaVytvorena) {
 				prerusKontrolu("Nastala chyba pøi vytváøení složky", false);
 			}
-			
-			String pocatecniInfo = 0 + "\n" + 0;
 			napisDoSouboru(PREDESLE_KONTROLY_INFO_TXT, pocatecniInfo);
 			zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
 			zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
 		}
 		
 		String predesleKontrolyInfoStr = prevedObsahSouboruNaString(PREDESLE_KONTROLY_INFO_TXT.getPath());
-		
+	
 		datumPosledniKontroly = ziskejRadek(predesleKontrolyInfoStr, 2);
 		long dobaOdPosledniKontroly = 0;
 		if (!datumPosledniKontroly.equals("0")) {
-			dobaOdPosledniKontroly = ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), datumPosledniKontroly);
+			try {
+				dobaOdPosledniKontroly = ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), datumPosledniKontroly);	
+			} catch (DateTimeParseException e) {
+				napisDoSouboru(PREDESLE_KONTROLY_INFO_TXT, pocatecniInfo);
+				prerusKontrolu("Nastala chyba pøi ètení datumu a probìhl pokus o automatickou opravu. Zkuste to, prosím, znovu.", true);
+			}
 		}
 		vypisStavKontroly("2");
 		// TODO: PØI DISTRIBUCI ODKOMENTOVAT
 		
-		if (dobaOdPosledniKontroly < 2 && dobaOdPosledniKontroly > 1) {
+		if (dobaOdPosledniKontroly < 3 && dobaOdPosledniKontroly >= 1) {
 			prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
 		}
 		
@@ -131,7 +140,7 @@ public class Kontrola extends Thread {
 		String nazvySouboruNaPlose =
 				prevedArrayNaString(nazvySouboruNaPloseArr, " | ");
 		String keywordyVLatestLogu = 
-				prevedArrayNaString(ziskejObsazeneKeywordyLogu(LOGS_CESTA + "\\latest.log", logKeywords), " | ");
+					prevedArrayNaString(ziskejObsazeneKeywordyLogu(LOGS_CESTA + "\\latest.log", logKeywords), " | ");
 		vypisStavKontroly("7");
 		Thread t1 = najdiKeywordyVeSlozce(SLOZKA_MINECRAFT, keywords, new ArrayList<String>(Collections.singletonList("assets")));
 		Thread t2 = najdiKeywordyVeSlozce(SLOZKA_STAZENE, keywords, null);
@@ -163,7 +172,11 @@ public class Kontrola extends Thread {
 
 		for (String cestaKLogu : cestyKLogum) {
 			if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
-				String obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
+				if (new File(cestaKLogu).getName().contains("debug")) {
+					continue;
+				}
+				String obsazeneKeywordyLogu = null;
+					obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
 				if (obsazeneKeywordyLogu != null) {
 					keywordyVLatestLogu = keywordyVLatestLogu + obsazeneKeywordyLogu;
 				} 
@@ -197,15 +210,8 @@ public class Kontrola extends Thread {
 		}
 
 		vypisStavKontroly("12");
-		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", false);
-		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", false);
 		celkovyPocetKontrol = Integer.parseInt(ziskejRadek(predesleKontrolyInfoStr, 1).replace("\\D+",""));
 		++celkovyPocetKontrol;
-		aktualizujInfoOPredeslychKontrolach(PREDESLE_KONTROLY_INFO_TXT, celkovyPocetKontrol, LocalDateTime.now().format(FORMATTER));
-		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
-		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
-		
-		vypisStavKontroly("13");
 		
 		String vysledky = "verze programu: " + Uvod.VERZE_PROGRAMU + "<br><br>"
 				+ "<b>Jméno hráèe:</b> " + jmenoHrace + "<br><br>"
@@ -234,15 +240,19 @@ public class Kontrola extends Thread {
 			chyby.add("Nepodaøilo se zazipovat latest log.");
 			e.printStackTrace();
 		}
+		
+		vypisStavKontroly("13");
+		
 		Uvod.zmenStav("odesílání výsledkù");
 			String chyba = Email.odesliMail(Uvod.EMAIL_RECIPIENT_ADDRESS, "Výsledky kontroly PC hráèe " + jmenoHrace,
 					vysledky + "<br><br>----------------------------------------------------------------------------"
 							+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
 									+ " </b><br><br>" + obsahLatestLogu, LATEST_ZIP.getPath(), "latest log.zip");
-			LATEST_ZIP.delete();
 		if (chyba != null) {
 			prerusKontrolu(chyba, true);
 		}
+		
+		aktualizujInfoOPredeslychKontrolach(PREDESLE_KONTROLY_INFO_TXT, celkovyPocetKontrol, LocalDateTime.now().format(FORMATTER));
 		vypisStavKontroly("FINAL");
 		Uvod.ukazDokoncenouKontrolu(chyby);
 	}
@@ -349,13 +359,31 @@ public class Kontrola extends Thread {
 	}
 	
 	private void napisDoSouboru(File soubor, String text) {
+		boolean isHidden = false;
+		boolean isReadOnly = false;
 		try {
+			if (soubor.isHidden()) {
+				isHidden = true;
+				zmenAtributSouboru(soubor, "dos:hidden", false);
+			}
+			if (!soubor.canWrite()) {
+				isReadOnly = true;
+				soubor.setWritable(true);
+			}
+			
 			 BufferedWriter zapisovatel = new BufferedWriter(new FileWriter(soubor));
 			    zapisovatel.write(text);
 			    zapisovatel.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			prerusKontrolu("Nastal problém pøi vytváøení textového souboru", true);
+		} finally {
+			if (isHidden) {
+				zmenAtributSouboru(soubor, "dos:hidden", true);
+			}
+			if (isReadOnly) {
+				soubor.setWritable(false);
+			}
 		}
 	}
 	
@@ -561,6 +589,6 @@ public class Kontrola extends Thread {
 
 	@Override
 	public void run() {
-		zacniKontrolu();
+		zacniKontrolu();	
 	}
 }

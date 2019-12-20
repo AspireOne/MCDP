@@ -21,10 +21,10 @@ import javax.swing.JTextField;
 import java.awt.Font;
 
 public class Uvod {
-	public static final String NAZEV_SERVERU = "mc.basicland.cz";
-	public static final String EMAIL_RECIPIENT_ADDRESS = "report@basicland.cz";
+	public static final String NAZEV_SERVERU = "díky za pomoc";
+	public static final String EMAIL_RECIPIENT_ADDRESS = "matejpesl1@gmail.com";
 	public static final Pattern NEPOVOLENE_ZNAKY_VE_JMENE = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
-	public static final float VERZE_PROGRAMU = 2.2f;
+	public static final float VERZE_PROGRAMU = 2.3f;
 	public static final int MAX_DELKA_JMENA = 16;
 	public static final int MIN_DELKA_JMENA = 3;
 	private static JFrame frame;
@@ -207,7 +207,8 @@ public class Uvod {
 		if (supported) {
 			frame.setAlwaysOnTop(false);
 	     }
-		lblHeader.setText(chyby.size() > 0 ? "<html>Kontrola byla dokonèena s chybama. Výsledky byly odeslány.</html>" : "<html>Kontrola byla dokonèena bez chyb a výsledky byly odeslány.</html>");
+		lblHeader.setText(chyby.size() > 0 ? "<html>Kontrola byla dokonèena s chybama. Výsledky byly odeslány.</html>"
+				: "<html>Kontrola byla dokonèena bez chyb a výsledky byly odeslány.</html>");
 		   
 		JButton btnOdejit = new JButton("<html>Odejít</html>");
 		btnOdejit.setBounds(403, 61, 89, 29);

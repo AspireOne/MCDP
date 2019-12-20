@@ -20,6 +20,7 @@ public class HledaniSouboru implements FileVisitor<Path> {
 	private ArrayList<String> pripony = new ArrayList<>();
 	private boolean vratNazvySouboru;
 	private String jmenoPocatecniSlozky;
+	public static final ArrayList<String> DEFAULTNI_PRIPONY_K_PRESKOCENI = new ArrayList<>(Arrays.asList("ogg", "wav", "mp3", "ps", "snt", "nbt"));
 	
 	public HledaniSouboru(ArrayList<String> pripony, ArrayList<String> keywords) {
 		this.pripony = pripony;
@@ -94,6 +95,10 @@ public class HledaniSouboru implements FileVisitor<Path> {
 		String priponaSouboru = nazevSouboru.substring(nazevSouboru.lastIndexOf(".") + 1);
 		boolean priponaEquals = false;
 		boolean keywordEquals = false;
+		if (DEFAULTNI_PRIPONY_K_PRESKOCENI.parallelStream().anyMatch(priponaSouboru.toLowerCase().trim()::matches)) {
+			return FileVisitResult.CONTINUE;
+		}
+		
 		if (pripony != null) {
 			for (String pripona : pripony) {
 				if (priponaSouboru.equals(pripona)) {
