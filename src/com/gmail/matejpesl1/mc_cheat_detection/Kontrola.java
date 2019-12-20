@@ -12,17 +12,24 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import javax.swing.JOptionPane;
+
+import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.model.ZipParameters;
+import net.lingala.zip4j.util.Zip4jConstants;
 
 public class Kontrola extends Thread {
 	public static final ArrayList<String> DEFAULT_KEYWORDS = new ArrayList<>(Arrays.asList("huzuni", "skillclient", "liquidbounce",
@@ -40,10 +47,12 @@ public class Kontrola extends Thread {
 	public static final File SLOZKA_VERSIONS = new File(System.getProperty("user.home") + "\\AppData\\Roaming\\.minecraft\\versions");
 	public static final File SLOZKA_MINECRAFT = new File(System.getProperty("user.home") + "\\AppData\\Roaming\\.minecraft");
 	public static final File SLOZKA_STAZENE = new File(Paths.get(System.getProperty("user.home"), "Downloads").toString());
-	public static final SimpleDateFormat FORMAT_DATA = new SimpleDateFormat("MM.dd.yyyy HH:mm:ss");
+	public static final SimpleDateFormat FORMAT_DTA = new SimpleDateFormat("d-.MM-yyyy HH:mm:ss");
 	public static final File VLASTNI_SLOZKA = new File(VLASTNI_SLOZKA_CESTA);
 	public static final File PREDESLE_KONTROLY_INFO_TXT = new File(VLASTNI_SLOZKA.getPath() + "\\predesleKontrolyInfo.txt");
 	public static final String ROZDELOVAC_SLOV = " | ";
+	private static final int POCET_RADKU_LOGU_V_NAHLEDU = 700;
+	private static final File LATEST_ZIP = new File(VLASTNI_SLOZKA + "\\latest.zip");
 	private boolean pravdepodobneNespravneJmeno;
 	private boolean pravdepodobnyHacker;
 	private List<String> nalezeneJmenaHacku = Collections.synchronizedList(new ArrayList<>());
@@ -56,6 +65,8 @@ public class Kontrola extends Thread {
 	private String jmenoHrace;
 	private int duvodyProHackeraCounter;
 	private int celkovyPocetKontrol;
+	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+	String stav;
 	
 	public Kontrola() {
 		DEFAULT_LOG_KEYWORDS = new ArrayList<>(Arrays.asList("hack", "fly", "antiknockback", "speed",
@@ -83,34 +94,44 @@ public class Kontrola extends Thread {
 		datumPosledniKontroly = ziskejRadek(predesleKontrolyInfoStr, 2);
 		long dobaOdPosledniKontroly = 0;
 		if (!datumPosledniKontroly.equals("0")) {
-			dobaOdPosledniKontroly = ziskejRozdilMeziDaty(FORMAT_DATA.format(new Date()), datumPosledniKontroly);	
+			dobaOdPosledniKontroly = ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), datumPosledniKontroly);
 		}
 		vypisStavKontroly("2");
 		// TODO: PØI DISTRIBUCI ODKOMENTOVAT
-		/*
-		if (dobaOdPosledniKontroly < 30 && dobaOdPosledniKontroly > 1) {
+		
+		if (dobaOdPosledniKontroly < 2 && dobaOdPosledniKontroly > 1) {
 			prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
 		}
-		*/
-		long dobaOdPosledniUpravyVersions = ziskejRozdilMeziDaty(FORMAT_DATA.format(new Date()), ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)); 
+		
+		long dobaOdPosledniUpravyVersions =
+				ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)); 
 		if (dobaOdPosledniUpravyVersions < 15) {
 			pridejDuvodProHackera("Složka versions byla upravována pøed ménì než 15 minutami");
 		}
 		vypisStavKontroly("3");
 		
-		ArrayList<String> nazvySouboruVeVersionsArr = new HledaniSouboru((String)null, null).prohledejSoubory(SLOZKA_VERSIONS, false, true, null);
-		ArrayList<String> nazvySouboruVMinecraftArr = new HledaniSouboru((String)null, null).prohledejSoubory(SLOZKA_MINECRAFT, false, true, null);
+		ArrayList<String> nazvySouboruVeVersionsArr =
+				new HledaniSouboru((String)null, null).prohledejSoubory(SLOZKA_VERSIONS, false, true, null);
+		ArrayList<String> nazvySouboruVMinecraftArr =
+				new HledaniSouboru((String)null, null).prohledejSoubory(SLOZKA_MINECRAFT, false, true, null);
 		vypisStavKontroly("4");
-		ArrayList<String> nazvySouboruVeStazenychArr = new HledaniSouboru(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_STAZENE, false, true, null);
-		ArrayList<String> nazvySouboruNaPloseArr = new HledaniSouboru(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_PLOCHA, false, true, null);
+		ArrayList<String> nazvySouboruVeStazenychArr =
+				new HledaniSouboru (new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_STAZENE, false, true, null);
+		ArrayList<String> nazvySouboruNaPloseArr =
+				new HledaniSouboru (new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_PLOCHA, false, true, null);
 		vypisStavKontroly("5");
 		
-		String nazvySouboruVeVersions = prevedArrayNaString(nazvySouboruVeVersionsArr, " | ");
-		String nazvySouboruVMinecraft = prevedArrayNaString(nazvySouboruVMinecraftArr, " | ");
+		String nazvySouboruVeVersions =
+				prevedArrayNaString(nazvySouboruVeVersionsArr, " | ");
+		String nazvySouboruVMinecraft =
+				prevedArrayNaString(nazvySouboruVMinecraftArr, " | ");
 		vypisStavKontroly("6");
-		String nazvySouboruVeStazenych = prevedArrayNaString(nazvySouboruVeStazenychArr, " | ");
-		String nazvySouboruNaPlose = prevedArrayNaString(nazvySouboruNaPloseArr, " | ");
-		String keywordyVLatestLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(LOGS_CESTA + "\\latest.log", logKeywords), " | ");
+		String nazvySouboruVeStazenych =
+				prevedArrayNaString(nazvySouboruVeStazenychArr, " | ");
+		String nazvySouboruNaPlose =
+				prevedArrayNaString(nazvySouboruNaPloseArr, " | ");
+		String keywordyVLatestLogu = 
+				prevedArrayNaString(ziskejObsazeneKeywordyLogu(LOGS_CESTA + "\\latest.log", logKeywords), " | ");
 		vypisStavKontroly("7");
 		Thread t1 = najdiKeywordyVeSlozce(SLOZKA_MINECRAFT, keywords, new ArrayList<String>(Collections.singletonList("assets")));
 		Thread t2 = najdiKeywordyVeSlozce(SLOZKA_STAZENE, keywords, null);
@@ -141,7 +162,7 @@ public class Kontrola extends Thread {
 		String nalezeneJmenaHackuStr = prevedArrayNaString(nalezeneJmenaHacku, ", ");
 
 		for (String cestaKLogu : cestyKLogum) {
-			if (ziskejRozdilMeziDaty(FORMAT_DATA.format(new Date()), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
+			if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
 				String obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
 				if (obsazeneKeywordyLogu != null) {
 					keywordyVLatestLogu = keywordyVLatestLogu + obsazeneKeywordyLogu;
@@ -170,6 +191,7 @@ public class Kontrola extends Thread {
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+					prerusKontrolu("Nastala chyba pøi syncrhonizování vláken", true);
 				}	
 			}
 		}
@@ -179,7 +201,7 @@ public class Kontrola extends Thread {
 		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", false);
 		celkovyPocetKontrol = Integer.parseInt(ziskejRadek(predesleKontrolyInfoStr, 1).replace("\\D+",""));
 		++celkovyPocetKontrol;
-		aktualizujInfoOPredeslychKontrolach(PREDESLE_KONTROLY_INFO_TXT, celkovyPocetKontrol, FORMAT_DATA.format(new Date()));
+		aktualizujInfoOPredeslychKontrolach(PREDESLE_KONTROLY_INFO_TXT, celkovyPocetKontrol, LocalDateTime.now().format(FORMATTER));
 		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
 		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
 		
@@ -191,7 +213,7 @@ public class Kontrola extends Thread {
 						"Za toto jméno pravdìpodobnì nebylo na tomto PC za posledních 15 dní hráno!" : "jméno je pravdìpodobnì správné") + "<br><br>"
 				+ "<b>pravdìpodobný hacker: " + (pravdepodobnyHacker ? "ano</b> - dùvody: " + "<br>" + duvodyProHackera : "ne</b>") + "<br><br>"
 				+ "<b>celkový poèet kontrol provedených na tomto PC: </b><br>" + celkovyPocetKontrol + "<br><br>"
-				+ "<b>Uplynulá doba od pøedešlé kontroly: </b><br>" + (celkovyPocetKontrol <= 1 ?
+				+ "<b>Pøedešlá kontrola probìhla pøed: </b><br>" + (celkovyPocetKontrol <= 1 ?
 						"žádné pøedešlé kontroly neprobìhly" : ziskejSlovniRozdilMeziDaty(dobaOdPosledniKontroly, datumPosledniKontroly)) + "<br><br>"
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b>" + "<br>" + (nalezeneJmenaHacku.isEmpty() ?
 						"žádné" : nalezeneJmenaHackuStr) + "<br><br>"
@@ -205,16 +227,57 @@ public class Kontrola extends Thread {
 				ziskejSlovniRozdilMeziDaty(dobaOdPosledniUpravyVersions, ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)) + "<br><br>"
 				+ "<b>Chyby pøi  kontrole: </b>" + "<br>" + (chyby.isEmpty() ? "žádné" : chyby);
 
+		String obsahLatestLogu = zkratString(prevedObsahSouboruNaString(LOGS_CESTA + "\\latest.log"), POCET_RADKU_LOGU_V_NAHLEDU);
+		try {
+			vytvorZip(new File(LOGS_CESTA + "\\latest.log"), LATEST_ZIP.toString(), null);
+		} catch (Exception e) {
+			chyby.add("Nepodaøilo se zazipovat latest log.");
+			e.printStackTrace();
+		}
 		Uvod.zmenStav("odesílání výsledkù");
 			String chyba = Email.odesliMail(Uvod.EMAIL_RECIPIENT_ADDRESS, "Výsledky kontroly PC hráèe " + jmenoHrace,
-					vysledky + "<br><br>----------------------------------------------------------------------------\n<b>Nejnovìjší log: </b><br><br>"+
-							prevedObsahSouboruNaString(LOGS_CESTA + "\\latest.log"));	
-		
+					vysledky + "<br><br>----------------------------------------------------------------------------"
+							+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
+									+ " </b><br><br>" + obsahLatestLogu, LATEST_ZIP.getPath(), "latest log.zip");
+			LATEST_ZIP.delete();
 		if (chyba != null) {
 			prerusKontrolu(chyba, true);
 		}
 		vypisStavKontroly("FINAL");
 		Uvod.ukazDokoncenouKontrolu(chyby);
+	}
+	
+	public String zkratString(String text, int maxPocetRadku) {
+		String[] radky = text.split("\\r?\\n");
+		String vsechnyRadky = null;
+		int cisloRadku = 0;
+		for (String radek : radky) {
+			++cisloRadku;
+			if (cisloRadku <= maxPocetRadku) {
+				vsechnyRadky = (vsechnyRadky == null ? "" : vsechnyRadky + "\n") + radek;	
+			} else {
+				break;
+			}	
+		}
+		return vsechnyRadky;
+	}
+	
+	public void vytvorZip(File souborKZazipovani, String destinaceZipu, String heslo) throws Exception {
+	        ZipParameters parametry = new ZipParameters();
+	        parametry.setCompressionMethod(Zip4jConstants.COMP_DEFLATE);
+	        parametry.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_ULTRA);
+	        if (heslo != null) {
+	            parametry.setEncryptFiles(true);
+	            parametry.setEncryptionMethod(Zip4jConstants.ENC_METHOD_AES);
+	            parametry.setAesKeyStrength(Zip4jConstants.AES_STRENGTH_256);
+	            parametry.setPassword(heslo);
+	        }
+	        ZipFile zipFile = new ZipFile(destinaceZipu);
+	        if (souborKZazipovani.isFile()) {
+	            zipFile.addFile(souborKZazipovani, parametry);
+	        } else if (souborKZazipovani.isDirectory()) {
+	            zipFile.addFolder(souborKZazipovani, parametry);
+	        }
 	}
 	
 	public void dodejUdaje(String jmenoHrace, boolean pravdepodobneNespravneJmeno) {
@@ -395,19 +458,17 @@ public class Kontrola extends Thread {
 	}
 	
 	private String ziskejDatumPosledniUpravy(File slozka) {
-		return FORMAT_DATA.format(slozka.lastModified());
+		LocalDateTime dateAndTime =
+			    LocalDateTime.ofInstant(Instant.ofEpochMilli(slozka.lastModified()), ZoneId.systemDefault());
+		String dateAndTimeStr = dateAndTime.format(FORMATTER);
+		return dateAndTimeStr;
 	}
 	
 	private long ziskejRozdilMeziDaty(String datum1, String datum2) {
-		long rozdilVMinutach = 0;
-	    	 try {
-	 			long diff = FORMAT_DATA.parse(datum1).getTime() - FORMAT_DATA.parse(datum2).getTime();
-	 			rozdilVMinutach = TimeUnit.MINUTES.convert(diff, TimeUnit.MILLISECONDS);
-	 		} catch (Exception e) {
-	 			e.printStackTrace();
-	 			chyby.add("nastal interní problém pøi porovnávání rozdílu mezi daty");
-	 		}
-	    	 return rozdilVMinutach;
+		LocalDateTime formatDatum1 = LocalDateTime.parse(datum1, FORMATTER);
+		LocalDateTime formatDatum2 = LocalDateTime.parse(datum2, FORMATTER);
+		long rozdilVMinutach = ChronoUnit.MINUTES.between(formatDatum2, formatDatum1);
+	    return rozdilVMinutach;
 	}
 	
 	public String prevedObsahSouboruNaString(String cestaKSouboru) { 
@@ -441,13 +502,18 @@ public class Kontrola extends Thread {
 		int oneDayInMins = 1440;
 		int oneHourInMins = 60;
 		if (rozdil < oneHourInMins) {
-			 napisDiff = rozdil + " min. (" + folderModifiedDate + ")";
+			 napisDiff = rozdil + (rozdil == 1 ? " minutou. ": " minutami. ") + "(" + folderModifiedDate + ")";
 		}
 		else if (rozdil >= oneHourInMins && rozdil < oneDayInMins) {
-			napisDiff = rozdil/oneHourInMins + "h a " + rozdil % oneHourInMins + " min. (" + folderModifiedDate + ")";
+			long rozdilVMinutach = rozdil/oneHourInMins;
+			napisDiff = rozdilVMinutach + (rozdilVMinutach == 1 ? " hodinou ": " hodinami ") + " a "
+				+ rozdil % oneHourInMins + (rozdilVMinutach == 1 ? " minutou. ": " minutami. ") + "(" + folderModifiedDate + ")";
 		}
 		else if (rozdil >= oneDayInMins) {
-			napisDiff = rozdil/oneHourInMins/24 + " dnama a " + (rozdil/oneHourInMins) % 24 + " hodinama. (" + folderModifiedDate + ")";
+			long rozdilVeDnech = rozdil/oneHourInMins/24;
+			long zbyleHodiny = (rozdil/oneHourInMins) % 24;
+			napisDiff = rozdilVeDnech + (rozdilVeDnech == 1 ? " dnem " : " dny ")
+				+ " a " + zbyleHodiny + (zbyleHodiny == 1 ? " hodinou. " : " hodinami. ") + ". (" + folderModifiedDate + ")";
 		}
 		return napisDiff;
 	}
@@ -459,7 +525,7 @@ public class Kontrola extends Thread {
 			}
 		}
 		for (String cestaKLogu : cestyKLogum) {
-			if (ziskejRozdilMeziDaty(FORMAT_DATA.format(new Date()), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
+			if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
 				String obsahLogu = prevedObsahSouboruNaString(cestaKLogu);
 				String regex = "\\b" + jmeno + "\\b";
 				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
@@ -475,7 +541,8 @@ public class Kontrola extends Thread {
 	public void prerusKontrolu(String chyba, boolean ukazUzivateli) {
 		System.err.println(chyba);
 		chyba = ukazUzivateli ? chyba : "";
-		JOptionPane.showMessageDialog(null, "Pøi kontrole došlo k chybì, která zabránila normální funkci programu. Žádná data nebudou odeslána."
+		JOptionPane.showMessageDialog(null, "Pøi kontrole došlo k chybì" + "(" + stav + ")"
+		+ ", která zabránila normální funkci programu. Žádná data nebudou odeslána."
 				+ " Chyba: " + chyba, "Chyba", JOptionPane.ERROR_MESSAGE);
 			zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
 			zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
@@ -489,6 +556,7 @@ public class Kontrola extends Thread {
 	
 	public void vypisStavKontroly(String stav) {
 		System.out.println(stav);
+		this.stav = stav;
 	}
 
 	@Override

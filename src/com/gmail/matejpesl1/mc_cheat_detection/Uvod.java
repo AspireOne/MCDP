@@ -24,7 +24,7 @@ public class Uvod {
 	public static final String NAZEV_SERVERU = "mc.basicland.cz";
 	public static final String EMAIL_RECIPIENT_ADDRESS = "report@basicland.cz";
 	public static final Pattern NEPOVOLENE_ZNAKY_VE_JMENE = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
-	public static final float VERZE_PROGRAMU = 2.1f;
+	public static final float VERZE_PROGRAMU = 2.2f;
 	public static final int MAX_DELKA_JMENA = 16;
 	public static final int MIN_DELKA_JMENA = 3;
 	private static JFrame frame;
@@ -46,7 +46,8 @@ public class Uvod {
 	}
 	
 	private static void prepareGUI() {
-		frame = new JFrame("Kontrola - " + NAZEV_SERVERU + " | by matejpesl1@gmail.com [V" + VERZE_PROGRAMU + "]");
+		frame = new JFrame("Kontrola - " + NAZEV_SERVERU + " | by matejpesl1@gmail.com " +  "[v" + VERZE_PROGRAMU + "]");
+		frame.setSize(520, 130);
 		frame.setResizable(false);
 		frame.setLocationRelativeTo(null);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
