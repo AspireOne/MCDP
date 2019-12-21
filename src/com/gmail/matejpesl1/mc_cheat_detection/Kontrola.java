@@ -33,7 +33,7 @@ import net.lingala.zip4j.util.Zip4jConstants;
 
 public class Kontrola extends Thread {
 	public static final ArrayList<String> DEFAULT_KEYWORDS = new ArrayList<>(Arrays.asList("huzuni", "skillclient", "liquidbounce",
-			"wolfram", "impact", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked", "hackclient", "hacked-client",
+			"wolfram", "impact_", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked", "hackclient", "hacked-client",
 			"hack-client", "pandora", "killaura", "kill-aura", "forgehax"));
 	public final ArrayList<String> DEFAULT_LOG_KEYWORDS;
 	public static final String KORENOVA_SLOZKA = System.getProperty("user.home");
@@ -50,7 +50,7 @@ public class Kontrola extends Thread {
 	public static final File VLASTNI_SLOZKA = new File(VLASTNI_SLOZKA_CESTA);
 	public static final File PREDESLE_KONTROLY_INFO_TXT = new File(VLASTNI_SLOZKA.getPath() + "\\predesleKontrolyInfo.txt");
 	public static final String ROZDELOVAC_SLOV = " | ";
-	public static final int POCET_RADKU_LOGU_V_NAHLEDU = 700;
+	public static final int POCET_RADKU_LOGU_V_NAHLEDU = 500;
 	private static final File LATEST_ZIP = new File(VLASTNI_SLOZKA + "\\latest.zip");
 	private boolean pravdepodobneNespravneJmeno;
 	private boolean pravdepodobnyHacker;
@@ -70,6 +70,7 @@ public class Kontrola extends Thread {
 	public Kontrola() {
 		super.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 		    public void uncaughtException(Thread t, Throwable e) {
+		    	e.printStackTrace();
 		       prerusKontrolu("neošetøená vyjímka", true);
 		    }
 		 });
@@ -541,7 +542,7 @@ public class Kontrola extends Thread {
 			long rozdilVeDnech = rozdil/oneHourInMins/24;
 			long zbyleHodiny = (rozdil/oneHourInMins) % 24;
 			napisDiff = rozdilVeDnech + (rozdilVeDnech == 1 ? " dnem " : " dny ")
-				+ " a " + zbyleHodiny + (zbyleHodiny == 1 ? " hodinou. " : " hodinami. ") + ". (" + folderModifiedDate + ")";
+				+ " a " + zbyleHodiny + (zbyleHodiny == 1 ? " hodinou. " : " hodinami. ") + "(" + folderModifiedDate + ")";
 		}
 		return napisDiff;
 	}

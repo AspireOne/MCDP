@@ -39,10 +39,33 @@ public class Uvod {
 	private static boolean kontrolaSpustena;
 	   
 	public static void main(String[] args) {
+		/*
+		try {
+			new ProcessBuilder().command("cmd.exe", "/c", "PING -n 3 127.0.0.1>nul && " +
+				"move /Y " + "C:\\Users\\42073\\Desktop\\testdir\\testdocdir.txt" + " " + "C:\\Users\\42073\\Desktop\\testdoc.txt").start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		*/
 		kontrola = new Kontrola();
 		kontrola.start();
 		prepareGUI();
+		ukazAktualizaceObrazovku();
 		ukazAgreementObrazovku();
+		
+	}
+	
+	private static void ukazAktualizaceObrazovku() {
+		lblHeader.setText("<html>Probíhá kontrola aktualizací...</html>");
+		Aktualizace aktualizace = new Aktualizace();
+		if (aktualizace.isUpdateAvailable()) {
+			System.out.println("nová verze nalezena, stahuju");
+			lblHeader.setText("<html>Nová verze nalezena! Probíhá stahování...</html>");
+			aktualizace.downloadUpdate();
+			System.out.println("dokonèneo");
+			lblHeader.setText("<html>Stahování dokonèeno. Program bude ukonèen a aktualizován.</html>");
+			aktualizace.update();
+		}
 	}
 	
 	private static void prepareGUI() {
