@@ -27,6 +27,8 @@ import java.util.zip.GZIPInputStream;
 
 import javax.swing.JOptionPane;
 
+import com.gmail.matejpesl1.mc_cheat_detection.Uvod.Rezim;
+
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.util.Zip4jConstants;
@@ -108,9 +110,10 @@ public class Kontrola extends Thread {
 		}
 		vypisStavKontroly("2");
 		// TODO: PØI DISTRIBUCI ODKOMENTOVAT
-		
-		if (dobaOdPosledniKontroly < 3 && dobaOdPosledniKontroly >= 1) {
-			prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
+		if (Uvod.ziskejRezim() != Rezim.DEBUG) {
+			if (dobaOdPosledniKontroly < 3 && dobaOdPosledniKontroly >= 1) {
+				prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
+			}	
 		}
 		
 		long dobaOdPosledniUpravyVersions =
@@ -176,6 +179,7 @@ public class Kontrola extends Thread {
 				if (new File(cestaKLogu).getName().contains("debug")) {
 					continue;
 				}
+				
 				String obsazeneKeywordyLogu = null;
 					obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
 				if (obsazeneKeywordyLogu != null) {
@@ -245,7 +249,7 @@ public class Kontrola extends Thread {
 		vypisStavKontroly("13");
 		
 		Uvod.zmenStav("odesílání výsledkù");
-			String chyba = Email.odesliMail(Uvod.EMAIL_RECIPIENT_ADDRESS, "Výsledky kontroly PC hráèe " + jmenoHrace,
+			String chyba = Email.odesliMail(Uvod.emailRecipientAddress, "Výsledky kontroly PC hráèe " + jmenoHrace,
 					vysledky + "<br><br>----------------------------------------------------------------------------"
 							+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
 									+ " </b><br><br>" + obsahLatestLogu, LATEST_ZIP.getPath(), "latest log.zip");
@@ -570,7 +574,7 @@ public class Kontrola extends Thread {
 	public void prerusKontrolu(String chyba, boolean ukazUzivateli) {
 		System.err.println(chyba);
 		chyba = ukazUzivateli ? chyba : "";
-		JOptionPane.showMessageDialog(null, "Pøi kontrole došlo k chybì" + "(" + stav + ")"
+		JOptionPane.showMessageDialog(null, "Pøi kontrole došlo k chybì" + " (" + stav + ")"
 		+ ", která zabránila normální funkci programu. Žádná data nebudou odeslána."
 				+ " Chyba: " + chyba, "Chyba", JOptionPane.ERROR_MESSAGE);
 			zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);

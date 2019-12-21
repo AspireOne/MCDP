@@ -23,10 +23,15 @@ import javax.swing.JTextField;
 import java.awt.Font;
 
 public class Uvod {
-	public static final String NAZEV_SERVERU = "díky za pomoc";
-	public static final String EMAIL_RECIPIENT_ADDRESS = "matejpesl1@gmail.com";
+	private static final Rezim rezim = Rezim.DEBUG;
+	public static String nazevServeru;
+	public static String emailRecipientAddress;
+	private static final String NAZEV_SERVERU_BASICLAND = "mc.basicland.cz";
+	private static final String EMAIL_RECIPIENT_ADDRESS_BASICLAND = "report@basicland.cz";
+	private static final String NAZEV_SERVERU_DEBUG = "mc.DEBUG.cz";
+	private static final String EMAIL_RECIPIENT_ADDRESS_DEBUG = "matejpesl1@gmail.com";
 	public static final Pattern NEPOVOLENE_ZNAKY_VE_JMENE = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
-	public static final float VERZE_PROGRAMU = 2.3f;
+	public static final float VERZE_PROGRAMU = 2.4f;
 	public static final int MAX_DELKA_JMENA = 16;
 	public static final int MIN_DELKA_JMENA = 3;
 	private static JFrame frame;
@@ -37,16 +42,32 @@ public class Uvod {
 	private static JButton btnZmenaOdpovedi;
 	private static JTextField txtfJmeno;
 	public static enum Podminka{PRIPOJENI_K_INTERNETU, SLOZKA_MINECRAFT};
+	public static enum Rezim {DEBUG, BASICLAND};
 	private static Kontrola kontrola;
 	private static boolean kontrolaSpustena;
 	   
 	public static void main(String[] args) {
 		kontrola = new Kontrola();
 		kontrola.start();
+		setServerDependantInfo(rezim);
 		prepareGUI();
-		ukazAktualizaceObrazovku();
+		if (rezim != Rezim.DEBUG) {
+			ukazAktualizaceObrazovku();	
+		}
 		ukazAgreementObrazovku();
-		
+	}
+	
+	private static void setServerDependantInfo(Rezim rezim) {
+		switch (rezim) {
+			case DEBUG: {
+				nazevServeru = NAZEV_SERVERU_DEBUG;
+				emailRecipientAddress = EMAIL_RECIPIENT_ADDRESS_DEBUG;
+			} break;
+			case BASICLAND: {
+				nazevServeru = NAZEV_SERVERU_BASICLAND;
+				emailRecipientAddress = EMAIL_RECIPIENT_ADDRESS_BASICLAND;
+			} break;
+		}
 	}
 	
 	private static void ukazAktualizaceObrazovku() {
@@ -90,7 +111,7 @@ public class Uvod {
 	}
 	
 	private static void prepareGUI() {
-		frame = new JFrame("Kontrola - " + NAZEV_SERVERU + " | by matejpesl1@gmail.com " +  "[v" + VERZE_PROGRAMU + "]");
+		frame = new JFrame("Kontrola - " + nazevServeru + " | by matejpesl1@gmail.com " +  "[v" + VERZE_PROGRAMU + "]");
 		frame.setSize(520, 130);
 		frame.setResizable(false);
 		frame.setLocationRelativeTo(null);
@@ -99,7 +120,7 @@ public class Uvod {
 		lblHeader = new JLabel("", JLabel.CENTER);
 		lblStatus = new JLabel("", JLabel.CENTER);
 
-		lblNazevServeru = new JLabel("<html><b>" + NAZEV_SERVERU + "</b></html>", JLabel.CENTER);
+		lblNazevServeru = new JLabel("<html><b>" + nazevServeru + "</b></html>", JLabel.CENTER);
 		lblNazevServeru.setVisible(false);
 		
 		controlPanel = new JPanel();
@@ -335,5 +356,9 @@ public class Uvod {
 		
 	public static boolean kontrolaJeSpustena() {
 		return kontrolaSpustena;
+	}
+	
+	public static Rezim ziskejRezim() {
+		return rezim;
 	}
 }
