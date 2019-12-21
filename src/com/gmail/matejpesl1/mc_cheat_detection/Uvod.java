@@ -5,6 +5,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.Normalizer;
@@ -39,14 +41,6 @@ public class Uvod {
 	private static boolean kontrolaSpustena;
 	   
 	public static void main(String[] args) {
-		/*
-		try {
-			new ProcessBuilder().command("cmd.exe", "/c", "PING -n 3 127.0.0.1>nul && " +
-				"move /Y " + "C:\\Users\\42073\\Desktop\\testdir\\testdocdir.txt" + " " + "C:\\Users\\42073\\Desktop\\testdoc.txt").start();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		*/
 		kontrola = new Kontrola();
 		kontrola.start();
 		prepareGUI();
@@ -57,15 +51,42 @@ public class Uvod {
 	
 	private static void ukazAktualizaceObrazovku() {
 		lblHeader.setText("<html>Probíhá kontrola aktualizací...</html>");
-		Aktualizace aktualizace = new Aktualizace();
-		if (aktualizace.isUpdateAvailable()) {
-			System.out.println("nová verze nalezena, stahuju");
-			lblHeader.setText("<html>Nová verze nalezena! Probíhá stahování...</html>");
-			aktualizace.downloadUpdate();
-			System.out.println("dokonèneo");
-			lblHeader.setText("<html>Stahování dokonèeno. Program bude ukonèen a aktualizován.</html>");
-			aktualizace.update();
+		Aktualizace aktualizace = null;
+		try {
+			aktualizace = new Aktualizace();	
+		} catch (URISyntaxException e) {
+			ukazChybu("Program nedokázal najít cestu sám k sobì.");
+			e.printStackTrace();
+			ukazAgreementObrazovku();
+		} catch (IOException e) {
+			ukazChybu("Nepodaøila se ovìøit dostupnost novìjší verze.");
+			e.printStackTrace();
+			ukazAgreementObrazovku();
 		}
+		
+		if (aktualizace.isUpdateAvailable()) {
+			lblHeader.setText("<html>Nová verze nalezena! Probíhá stahování, po dokonèení bude program restartován...</html>");
+			try {
+				aktualizace.downloadUpdate();	
+			} catch (IOException e) {
+				e.printStackTrace();
+				ukazChybu("Nepodaøilo se stáhnout novou verzi, pokraèuji se starou...");
+				ukazAgreementObrazovku();
+			}
+			
+			try {
+				aktualizace.update();	
+			} catch (IOException e) {
+				e.printStackTrace();
+				ukazChybu("Nepodaøilo se provést aktualizaci, pokraèuji se starou verzí...");
+				ukazAgreementObrazovku();
+			}
+			
+		}
+	}
+	
+	private static void ukazChybu(String chyba) {
+		JOptionPane.showMessageDialog(null, "Nastala chyba: " + chyba, "Chyba", JOptionPane.ERROR_MESSAGE);	
 	}
 	
 	private static void prepareGUI() {

@@ -14,25 +14,20 @@ public class Aktualizace {
 	private URL newestVerNumUrl;
 	private String thisProgramPath;
 	public final float newestVerNum;
+	private boolean downloaded;
 	public static final File newestVerNumFile = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\newestVerNum.txt");
 	public static final File newestVer = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\newestVer.jar");
 	
-	public Aktualizace() {
+	public Aktualizace() throws URISyntaxException, IOException {
 		 loadUrls();
 		 thisProgramPath = getThisProgramPath();
 		 newestVerNum = getNewestVerNum();
-		 System.out.println("this program path: " + thisProgramPath);
 	}
 	
-	private float getNewestVerNum() {
-		try {
-			download(newestVerNumUrl, newestVerNumFile.getPath());	
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(0);
-		}
-		
+	private float getNewestVerNum() throws IOException {
+		download(newestVerNumUrl, newestVerNumFile.getPath());
 		float newestVerNum = Float.parseFloat(new Kontrola().prevedObsahSouboruNaString(newestVerNumFile.getPath()));
+		newestVerNumFile.delete();
 		return newestVerNum;
 	}
 	
@@ -46,24 +41,18 @@ public class Aktualizace {
 	
 	private void loadUrls() {
 		 try {
-				newestVerUrl = new URL("https://drive.google.com/uc?export=download&id=13UJKideTMyW6U19PYA3WhKOV0QgqISlC");
-				newestVerNumUrl = new URL("https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp");
+			 newestVerUrl = new URL("https://drive.google.com/uc?export=download&id=13UJKideTMyW6U19PYA3WhKOV0QgqISlC");
+			 newestVerNumUrl = new URL("https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp");
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
-				System.exit(0);
 			}
 	}
 	
-	private String getThisProgramPath() {
-		String thisProgramLoc = null;
-		try {
-			thisProgramLoc = new File(Aktualizace.class.getProtectionDomain().getCodeSource().getLocation()
+	private String getThisProgramPath() throws URISyntaxException {
+		String thisProgramPath = null;
+			thisProgramPath = new File(Aktualizace.class.getProtectionDomain().getCodeSource().getLocation()
 					.toURI()).getPath();
-		} catch (URISyntaxException e1) {
-			e1.printStackTrace();
-			System.exit(0);
-		}
-		return thisProgramLoc;
+		return thisProgramPath;
 	}
 	
 	public boolean isUpdateAvailable() {
@@ -74,30 +63,17 @@ public class Aktualizace {
 		}
 	}
 	
-	public void downloadUpdate() {
-		try {
+	public void downloadUpdate() throws IOException {
 			download(newestVerUrl, newestVer.getPath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(0);
-		}
+			downloaded = true;
 	}
 	
-	public void update() {
-		if (newestVer == null) {
-			System.out.println("stahujuuuu");
+	public void update() throws IOException {
+		if (!downloaded) {
 			downloadUpdate();
 		}
-		System.out.println("doing it");
-		
-		try {
-			new ProcessBuilder().command("cmd.exe", "/c", "PING -n 2 127.0.0.1>nul && " +
-					"move /Y " + newestVer.getPath() + " " + thisProgramPath + " && " + thisProgramPath).start();
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(0);
-		} 
-		
+		new ProcessBuilder().command("cmd.exe", "/c", "PING -n 2 127.0.0.1>nul && " +
+				"move /Y " + newestVer.getPath() + " " + thisProgramPath + " && " + thisProgramPath).start();
 		System.exit(0);
 	}
 }
