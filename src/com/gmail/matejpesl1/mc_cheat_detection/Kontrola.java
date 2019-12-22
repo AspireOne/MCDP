@@ -36,7 +36,7 @@ import net.lingala.zip4j.util.Zip4jConstants;
 public class Kontrola extends Thread {
 	public static final ArrayList<String> DEFAULT_KEYWORDS = new ArrayList<>(Arrays.asList("huzuni", "skillclient", "liquidbounce",
 			"wolfram", "impact_", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked", "hackclient", "hacked-client",
-			"hack-client", "pandora", "killaura", "kill-aura", "forgehax"));
+			"hack-client", "pandora", "killaura", "kill-aura", "forgehax", "impact_", "impact-", "_impact", "-impact"));
 	public final ArrayList<String> DEFAULT_LOG_KEYWORDS;
 	public static final String KORENOVA_SLOZKA = System.getProperty("user.home");
 	public static final String VLASTNI_SLOZKA_CESTA = KORENOVA_SLOZKA + "\\vysledky";
@@ -58,7 +58,7 @@ public class Kontrola extends Thread {
 	private boolean pravdepodobnyHacker;
 	private List<String> nalezeneJmenaHacku = Collections.synchronizedList(new ArrayList<>());
 	private static ArrayList<String> cestyKLogum = new ArrayList<>();
-	private ArrayList<String> chyby = new ArrayList<>();
+	public ArrayList<String> chyby = new ArrayList<>();
 	private ArrayList<String> keywords;
 	private ArrayList<String> logKeywords;
 	private String datumPosledniKontroly;
@@ -66,10 +66,13 @@ public class Kontrola extends Thread {
 	private String jmenoHrace;
 	private int duvodyProHackeraCounter;
 	private int celkovyPocetKontrol;
+	private static final String pocatecniInfo = 0 + "\n" + 0;
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	String stav;
+	private Uvod uvod;
 	
-	public Kontrola() {
+	public Kontrola(Uvod uvod) {
+		this.uvod = uvod;
 		super.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 		    public void uncaughtException(Thread t, Throwable e) {
 		    	e.printStackTrace();
@@ -84,17 +87,10 @@ public class Kontrola extends Thread {
 	public void zacniKontrolu() {
 		LATEST_ZIP.deleteOnExit();
 		vypisStavKontroly("1");
-		nactiKeywordy();
-		String pocatecniInfo = 0 + "\n" + 0;
 		if (!VLASTNI_SLOZKA.exists()) {
-			boolean slozkaVytvorena = VLASTNI_SLOZKA.mkdir();
-			if (!slozkaVytvorena) {
-				prerusKontrolu("Nastala chyba pøi vytváøení složky", false);
-			}
-			napisDoSouboru(PREDESLE_KONTROLY_INFO_TXT, pocatecniInfo);
-			zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
-			zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
+			vytvorVlastniSlozku();
 		}
+		nactiKeywordy();
 		
 		String predesleKontrolyInfoStr = prevedObsahSouboruNaString(PREDESLE_KONTROLY_INFO_TXT.getPath());
 	
@@ -109,8 +105,7 @@ public class Kontrola extends Thread {
 			}
 		}
 		vypisStavKontroly("2");
-		// TODO: PØI DISTRIBUCI ODKOMENTOVAT
-		if (Uvod.ziskejRezim() != Rezim.DEBUG) {
+		if (Uvod.rezim != Rezim.DEBUG) {
 			if (dobaOdPosledniKontroly < 3 && dobaOdPosledniKontroly >= 1) {
 				prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
 			}	
@@ -123,29 +118,40 @@ public class Kontrola extends Thread {
 		}
 		vypisStavKontroly("3");
 		
-		ArrayList<String> nazvySouboruVeVersionsArr =
-				new HledaniSouboru((String)null, null).prohledejSoubory(SLOZKA_VERSIONS, false, true, null);
-		ArrayList<String> nazvySouboruVMinecraftArr =
-				new HledaniSouboru((String)null, null).prohledejSoubory(SLOZKA_MINECRAFT, false, true, null);
+		ArrayList<String> nazvySouboruVeVersionsArr =new HledaniSouboru
+				((String)null, null).prohledejSoubory(SLOZKA_VERSIONS, false, true, null);
+		
+		ArrayList<String> nazvySouboruVMinecraftArr = new HledaniSouboru
+				((String)null, null).prohledejSoubory(SLOZKA_MINECRAFT, false, true, null);
+		
 		vypisStavKontroly("4");
-		ArrayList<String> nazvySouboruVeStazenychArr =
-				new HledaniSouboru (new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_STAZENE, false, true, null);
-		ArrayList<String> nazvySouboruNaPloseArr =
-				new HledaniSouboru (new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_PLOCHA, false, true, null);
+		
+		ArrayList<String> nazvySouboruVeStazenychArr = new HledaniSouboru
+				(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_STAZENE, false, true, null);
+		
+		ArrayList<String> nazvySouboruNaPloseArr = new HledaniSouboru
+				(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_PLOCHA, false, true, null);
+		
 		vypisStavKontroly("5");
 		
 		String nazvySouboruVeVersions =
 				prevedArrayNaString(nazvySouboruVeVersionsArr, " | ");
+		
 		String nazvySouboruVMinecraft =
 				prevedArrayNaString(nazvySouboruVMinecraftArr, " | ");
+		
 		vypisStavKontroly("6");
 		String nazvySouboruVeStazenych =
 				prevedArrayNaString(nazvySouboruVeStazenychArr, " | ");
+		
 		String nazvySouboruNaPlose =
 				prevedArrayNaString(nazvySouboruNaPloseArr, " | ");
+		
 		String keywordyVLatestLogu = 
 					prevedArrayNaString(ziskejObsazeneKeywordyLogu(LOGS_CESTA + "\\latest.log", logKeywords), " | ");
+		
 		vypisStavKontroly("7");
+		
 		Thread t1 = najdiKeywordyVeSlozce(SLOZKA_MINECRAFT, keywords, new ArrayList<String>(Collections.singletonList("assets")));
 		Thread t2 = najdiKeywordyVeSlozce(SLOZKA_STAZENE, keywords, null);
 		Thread t3 = najdiKeywordyVeSlozce(SLOZKA_PLOCHA, keywords, null);
@@ -248,8 +254,8 @@ public class Kontrola extends Thread {
 		
 		vypisStavKontroly("13");
 		
-		Uvod.zmenStav("odesílání výsledkù");
-			String chyba = Email.odesliMail(Uvod.emailRecipientAddress, "Výsledky kontroly PC hráèe " + jmenoHrace,
+		uvod.zmenStav("odesílání výsledkù");
+			String chyba = Email.odesliMail(uvod.getCurrentServer().getMail(), "Výsledky kontroly PC hráèe " + jmenoHrace,
 					vysledky + "<br><br>----------------------------------------------------------------------------"
 							+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
 									+ " </b><br><br>" + obsahLatestLogu, LATEST_ZIP.getPath(), "latest log.zip");
@@ -259,7 +265,17 @@ public class Kontrola extends Thread {
 		
 		aktualizujInfoOPredeslychKontrolach(PREDESLE_KONTROLY_INFO_TXT, celkovyPocetKontrol, LocalDateTime.now().format(FORMATTER));
 		vypisStavKontroly("FINAL");
-		Uvod.ukazDokoncenouKontrolu(chyby);
+		uvod.ukazDokoncenouKontrolu(chyby);
+	}
+	
+	public void vytvorVlastniSlozku() {
+		boolean slozkaVytvorena = VLASTNI_SLOZKA.mkdir();
+		if (!slozkaVytvorena) {
+			prerusKontrolu("Nastala chyba pøi vytváøení složky", false);
+		}
+		napisDoSouboru(PREDESLE_KONTROLY_INFO_TXT, pocatecniInfo);
+		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
+		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
 	}
 	
 	public String zkratString(String text, int maxPocetRadku) {

@@ -22,11 +22,14 @@ public class Aktualizace {
 		 loadUrls();
 		 thisProgramPath = getThisProgramPath();
 		 newestVerNum = getNewestVerNum();
+		 if (!Kontrola.VLASTNI_SLOZKA.exists()) {
+			 new Kontrola(null).vytvorVlastniSlozku();
+		 }
 	}
 	
 	private float getNewestVerNum() throws IOException {
 		download(newestVerNumUrl, newestVerNumFile.getPath());
-		float newestVerNum = Float.parseFloat(new Kontrola().prevedObsahSouboruNaString(newestVerNumFile.getPath()));
+		float newestVerNum = Float.parseFloat(new Kontrola(null).prevedObsahSouboruNaString(newestVerNumFile.getPath()));
 		newestVerNumFile.delete();
 		return newestVerNum;
 	}
@@ -50,8 +53,13 @@ public class Aktualizace {
 	
 	private String getThisProgramPath() throws URISyntaxException {
 		String thisProgramPath = null;
-			thisProgramPath = new File(Aktualizace.class.getProtectionDomain().getCodeSource().getLocation()
+		/*
+			thisProgramPath = new File(Uvod.class.getProtectionDomain().getCodeSource().getLocation()
 					.toURI()).getPath();
+			*/
+		String thisProgramName = new File(System.getProperty("java.class.path")).getName();
+		thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
+		System.out.println("thisProgramPath: " + thisProgramPath);
 		return thisProgramPath;
 	}
 	
