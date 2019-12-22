@@ -54,7 +54,7 @@ public class SplashScreen extends JWindow implements Runnable {
     }
     
     public static URL getInternalFile(String resourceName) {
-        return SplashScreen.class.getResource("/resources/" + resourceName);
+        return SplashScreen.class.getResource("/resources/logos/" + resourceName);
     }
 
 	@Override

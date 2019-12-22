@@ -10,6 +10,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.swing.JButton;
@@ -21,6 +23,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import java.awt.Font;
+import java.awt.Image;
+import java.awt.Toolkit;
 
 public class Uvod {
 	public static final Rezim rezim = Rezim.DEBUG;
@@ -128,6 +132,8 @@ public class Uvod {
 	}
 	
 	private void prepareGUI() {
+		final ArrayList<String> iconSizes = new ArrayList<>(Arrays.asList("16x16", "32x32", "64x64", "128x128"));
+		frame.setIconImages(getProgramIcons(iconSizes));
 		frame.setTitle("Kontrola - " + currentServer.getIP() + " | by matejpesl1@gmail.com " +  "[v" + VERZE_PROGRAMU + "]");
 		frame.setSize(520, 130);
 		frame.setResizable(false);
@@ -155,6 +161,15 @@ public class Uvod {
 			}
 	    });
 		frame.setVisible(true);
+	}
+	
+	private List<Image> getProgramIcons(ArrayList<String> sizes) {
+		List<Image> icons = new ArrayList<>();
+		for (String size : sizes) {
+			System.out.println(Toolkit.getDefaultToolkit().getImage(SplashScreen.class.getResource("/resources/program_icons/" + size)));
+			icons.add(Toolkit.getDefaultToolkit().getImage(SplashScreen.class.getResource("/resources/program_icons/" + size)));
+		}
+		return icons;
 	}
 	
 	private void ukazAgreementObrazovku() {
