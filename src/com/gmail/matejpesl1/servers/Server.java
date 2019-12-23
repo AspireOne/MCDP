@@ -7,4 +7,5 @@ public interface Server {
 	public String getMail();
 	public String getLogo();
 	public Color getBorderColor();
+	public String getUpdateLink();
 }

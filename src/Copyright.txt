@@ -6,8 +6,6 @@
 
 * This file is part of Minecraft Cheat Detection Project.
 
-*
-
 * Minecraft Cheat Detection Project can not be copied and/or
 * distributed without the express permission of Matěj Pešl.
 

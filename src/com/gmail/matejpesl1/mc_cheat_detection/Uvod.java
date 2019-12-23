@@ -16,11 +16,13 @@ import java.util.regex.Pattern;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+
 import com.gmail.matejpesl1.servers.*;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.UIManager;
 
 import java.awt.Font;
 import java.awt.Image;
@@ -29,7 +31,7 @@ import java.awt.Toolkit;
 public class Uvod {
 	public static final Rezim rezim = Rezim.DEBUG;
 	public static final Pattern NEPOVOLENE_ZNAKY_VE_JMENE = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
-	public static final float VERZE_PROGRAMU = 2.4f;
+	public static final float VERZE_PROGRAMU = 2.6f;
 	public static final int MAX_DELKA_JMENA = 16;
 	public static final int MIN_DELKA_JMENA = 3;
 	private static final JFrame frame = new JFrame();
@@ -37,14 +39,17 @@ public class Uvod {
 	private static final JLabel lblStatus = new JLabel("", JLabel.CENTER);
 	private static final JLabel lblNazevServeru = new JLabel("", JLabel.CENTER);
 	private static final JPanel panel = new JPanel();
-	private static final JTextField txtfJmeno = new JTextField();
 	private static boolean kontrolaSpustena = false;
 	public static enum Podminka{PRIPOJENI_K_INTERNETU, SLOZKA_MINECRAFT};
 	public static enum Rezim {DEBUG, BASICLAND};
 	private Kontrola kontrola;
 	private Server currentServer;
-	   
 	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+		  } catch (Exception e) {
+			  e.printStackTrace();
+		  }  
 		Uvod uvod = new Uvod();
 		uvod.beginning();
 	}
@@ -55,17 +60,16 @@ public class Uvod {
 		currentServer = determineServer(rezim);
 		try {
 			SplashScreen splash =
-					new SplashScreen(currentServer.getBorderColor(), currentServer.getLogo(), 4000);
-			splash.run();	
+					new SplashScreen(currentServer.getBorderColor(), currentServer.getLogo(), 3000);
+			splash.run();
 		} catch(Exception e) {
 			e.printStackTrace();
+			kontrola.chyby.add("Nepodaøilo se spustit uvítací obrazovku (splash screen).");
 		}
 		
 		prepareGUI();
 		
-		if (rezim != Rezim.DEBUG) {
-			ukazAktualizaceObrazovku();	
-		}
+		ukazAktualizaceObrazovku();	
 		
 		ukazAgreementObrazovku();
 	}
@@ -87,19 +91,11 @@ public class Uvod {
 		lblHeader.setText("<html>Probíhá kontrola aktualizací...</html>");
 		Aktualizace aktualizace = null;
 		try {
-			aktualizace = new Aktualizace();
+			aktualizace = new Aktualizace(this);
 		} catch (URISyntaxException e) {
-			String chyba = "Program nedokázal najít cestu sám k sobì.";
-			ukazChybu(chyba);
-			kontrola.chyby.add(chyba);
-			e.printStackTrace();
-			ukazAgreementObrazovku();
+			showErrorInUpdateProcess("Program nedokázal najít cestu sám k sobì.", e);
 		} catch (IOException e) {
-			String chyba = "Nepodaøila se ovìøit dostupnost novìjší verze.";
-			ukazChybu(chyba);
-			kontrola.chyby.add(chyba);
-			e.printStackTrace();
-			ukazAgreementObrazovku();
+			showErrorInUpdateProcess("Nepodaøila se ovìøit dostupnost novìjší verze.", e);
 		}
 		
 		if (aktualizace.isUpdateAvailable()) {
@@ -107,24 +103,23 @@ public class Uvod {
 			try {
 				aktualizace.downloadUpdate();	
 			} catch (IOException e) {
-				e.printStackTrace();
-				String chyba = "Nepodaøilo se stáhnout novou verzi, pokraèuji se starou...";
-				ukazChybu(chyba);
-				kontrola.chyby.add(chyba);
-				ukazAgreementObrazovku();
+				showErrorInUpdateProcess("Nepodaøilo se stáhnout novou verzi, pokraèuji se starou...", e);
 			}
 			
 			try {
 				aktualizace.update();	
 			} catch (IOException e) {
-				e.printStackTrace();
-				String chyba = "Aktualizace se nezdaøila, pokraèuji se starou verzí...";
-				ukazChybu(chyba);
-				kontrola.chyby.add(chyba);
-				ukazAgreementObrazovku();
+				showErrorInUpdateProcess("Aktualizace se nezdaøila, pokraèuji se starou verzí...", e);
 			}
 			
 		}
+	}
+	
+	private void showErrorInUpdateProcess(String error, Exception e) {
+		e.printStackTrace();
+		ukazChybu(error);
+		kontrola.chyby.add(error);
+		ukazAgreementObrazovku();
 	}
 	
 	private void ukazChybu(String chyba) {
@@ -132,8 +127,6 @@ public class Uvod {
 	}
 	
 	private void prepareGUI() {
-		final ArrayList<String> iconSizes = new ArrayList<>(Arrays.asList("16x16", "32x32", "64x64", "128x128"));
-		frame.setIconImages(getProgramIcons(iconSizes));
 		frame.setTitle("Kontrola - " + currentServer.getIP() + " | by matejpesl1@gmail.com " +  "[v" + VERZE_PROGRAMU + "]");
 		frame.setSize(520, 130);
 		frame.setResizable(false);
@@ -160,24 +153,27 @@ public class Uvod {
 				System.exit(0);
 			}
 	    });
+		final ArrayList<String> iconSizes = new ArrayList<>(Arrays.asList("16x16", "32x32", "64x64", "128x128", "256x256"));
+		frame.setIconImages(getProgramIcons(iconSizes));
+		System.out.println(frame.getIconImages());
+		System.out.println(frame.getIconImage());
 		frame.setVisible(true);
 	}
 	
 	private List<Image> getProgramIcons(ArrayList<String> sizes) {
 		List<Image> icons = new ArrayList<>();
 		for (String size : sizes) {
-			System.out.println(Toolkit.getDefaultToolkit().getImage(SplashScreen.class.getResource("/resources/program_icons/" + size)));
-			icons.add(Toolkit.getDefaultToolkit().getImage(SplashScreen.class.getResource("/resources/program_icons/" + size)));
+			icons.add(Toolkit.getDefaultToolkit().getImage(SplashScreen.class.getResource("/resources/program_icons/" + size + ".png")));
 		}
 		return icons;
 	}
 	
 	private void ukazAgreementObrazovku() {
 		lblHeader.setText("<html>Souhlasíte s poskytnutím názvu, typu a obsahu nìkterých svých souborù serveru?</html>");
-		JButton btnNe = new JButton("<html>ne</html>");
+		JButton btnNe = new JButton("<html><strong>ne</strong></html>");
 		btnNe.setBounds(260, 48, 57, 29);
 		panel.add(btnNe);
-		JButton btnAno = new JButton("<html>ano</html>");
+		JButton btnAno = new JButton("<html><strong>ano</strong></html>");
 		btnAno.setBounds(196, 48, 57, 29);
 		panel.add(btnAno);
 		frame.revalidate();
@@ -201,15 +197,16 @@ public class Uvod {
 	
 	private void ukazZadejJmenoObrazovku() {
 		lblHeader.setText("<html>Zadejte své jméno ve høe</html>");
+		JTextField txtfJmeno = new JTextField();
 		txtfJmeno.setBounds(179, 48, 117, 20);
 		panel.add(txtfJmeno);
 		txtfJmeno.setColumns(13);
 			     
-		JButton btnPotvrdit = new JButton("<html>potvrdit</html>");
+		JButton btnPotvrdit = new JButton("<html><strong>potvrdit</strong></html>");
 		btnPotvrdit.setBounds(301, 45, 85, 26);
 		panel.add(btnPotvrdit);
 			      
-		JLabel lblJmeno = new JLabel("<html>Jméno:</html>");
+		JLabel lblJmeno = new JLabel("<html><b>Jméno:</b></html>");
 		lblJmeno.setBounds(129, 48, 45, 20);
 		panel.add(lblJmeno);
 			      
@@ -217,7 +214,6 @@ public class Uvod {
 		lblNeplatneJmeno.setBounds(192, 70, 97, 20);
 		panel.add(lblNeplatneJmeno);
 		lblNeplatneJmeno.setVisible(false);
-		    	  
 		btnPotvrdit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String jmeno = txtfJmeno.getText(); 
@@ -244,7 +240,7 @@ public class Uvod {
 									ukazZadejJmenoObrazovku();
 								}
 							} else {
-							  zacniKontrolu(jmeno, false);	 
+								zacniKontrolu(jmeno, false);
 							}
 						} else {
 							ukazNesplnenaPodminkaObrazovku(nesplnenaPodminka);
@@ -302,7 +298,7 @@ public class Uvod {
 		lblHeader.setText(chyby.size() > 0 ? "<html>Kontrola byla dokonèena s chybama. Výsledky byly odeslány.</html>"
 				: "<html>Kontrola byla dokonèena bez chyb a výsledky byly odeslány.</html>");
 		   
-		JButton btnOdejit = new JButton("<html>Odejít</html>");
+		JButton btnOdejit = new JButton("<html><strong>Odejít</strong></html>");
 		btnOdejit.setBounds(403, 61, 89, 29);
 		panel.add(btnOdejit);
 		frame.repaint();
@@ -322,8 +318,8 @@ public class Uvod {
 	public void ukazUzivatelNesouhlasilObrazovku() {
 		lblHeader.setText("<html>Kontrola nebude spuštìna.</html>");
 		
-		JButton btnOdejit = new JButton("Odejít");
-		JButton btnZmenaOdpovedi = new JButton("zmìnit odpovìï");
+		JButton btnOdejit = new JButton("<html><strong>Odejít</strong></html>");
+		JButton btnZmenaOdpovedi = new JButton("<html><strong>zmìnit odpovìï</strong></html>");
 		
 		btnOdejit.setBounds(292, 48, 68, 29);
 		btnZmenaOdpovedi.setBounds(155, 48, 133, 29);
@@ -358,9 +354,9 @@ public class Uvod {
 		
 		lblHeader.setText("<html>Kontrola nemùže být spuštìna. Dùvod: <strong>" + duvodProZastaveniKontroly + "</strong></html>");
 		
-		JButton btnZkusitZnovu = new JButton("<html>Zkusit znovu</html>");
+		JButton btnZkusitZnovu = new JButton("<html><strong>Zkusit znovu</strong></html>");
 		btnZkusitZnovu.setBounds(148, 55, 105, 27);
-		JButton btnOdejit = new JButton("<html>odejít</html>");
+		JButton btnOdejit = new JButton("<html><strong>odejít</strong></html>");
 		btnOdejit.setBounds(263, 55, 105, 27);
 		
 		panel.add(btnZkusitZnovu);

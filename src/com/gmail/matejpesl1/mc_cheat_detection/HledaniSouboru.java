@@ -22,7 +22,7 @@ public class HledaniSouboru implements FileVisitor<Path> {
 	private String jmenoPocatecniSlozky;
 	public static final ArrayList<String> DEFAULTNI_PRIPONY_K_PROHLEDANI =
 			new ArrayList<>(Arrays.asList("jar", "zip", "rar", "gz", "log","txt","json",
-					"exe", "dat", "mcmeta", "html", "cfg", "token", "properties"));
+					"exe", "dat", "mcmeta", "html", "cfg", "token", "properties", ""));
 	
 	public HledaniSouboru(ArrayList<String> pripony, ArrayList<String> keywords) {
 		this.pripony = pripony;
@@ -94,13 +94,11 @@ public class HledaniSouboru implements FileVisitor<Path> {
 	public FileVisitResult visitFile(Path soubor, BasicFileAttributes atributy) throws IOException {
 		String nazevSouboru = soubor.getFileName().toString();
 		String cestaKSouboruStr = soubor.toString();
-		String priponaSouboru = nazevSouboru.substring(nazevSouboru.lastIndexOf(".") + 1);
+		String priponaSouboru = soubor.toFile().isDirectory() ? "" : nazevSouboru.substring(nazevSouboru.lastIndexOf(".") + 1);
 		boolean priponaEquals = false;
 		boolean keywordEquals = false;
 		if (!DEFAULTNI_PRIPONY_K_PROHLEDANI.parallelStream().anyMatch(priponaSouboru.toLowerCase().trim()::matches)) {
-			if (pripony != null && !pripony.parallelStream().anyMatch(priponaSouboru.toLowerCase().trim()::matches)) {
-				return FileVisitResult.CONTINUE;	
-			}
+			return FileVisitResult.CONTINUE;
 		}
 		
 		if (pripony != null) {

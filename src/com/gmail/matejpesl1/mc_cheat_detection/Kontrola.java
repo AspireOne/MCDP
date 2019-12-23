@@ -258,7 +258,7 @@ public class Kontrola extends Thread {
 			String chyba = Email.odesliMail(uvod.getCurrentServer().getMail(), "Výsledky kontroly PC hráèe " + jmenoHrace,
 					vysledky + "<br><br>----------------------------------------------------------------------------"
 							+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
-									+ " </b><br><br>" + obsahLatestLogu, LATEST_ZIP.getPath(), "latest log.zip");
+									+ " </b><br><br>" + obsahLatestLogu, LATEST_ZIP.getPath(), "latest_log.zip");
 		if (chyba != null) {
 			prerusKontrolu(chyba, true);
 		}
@@ -599,8 +599,24 @@ public class Kontrola extends Thread {
 	}
 	
 	public void vynuceneUkonci() {
-			zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
-			zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
+		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", false);
+		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", false);
+			try {
+				byte[] predesleKontrolyInfoTxtBytes = Files.readAllBytes(PREDESLE_KONTROLY_INFO_TXT.toPath());	
+				for(File file : VLASTNI_SLOZKA.listFiles()) {
+					if (!Arrays.equals(Files.readAllBytes(file.toPath()), predesleKontrolyInfoTxtBytes)
+							&& !file.isDirectory()) {
+						file.delete();
+					}
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			if (VLASTNI_SLOZKA.exists() && !VLASTNI_SLOZKA.isHidden()) {
+				zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
+				zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);	
+			}
 	}
 	
 	public void vypisStavKontroly(String stav) {

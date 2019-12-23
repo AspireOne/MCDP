@@ -10,15 +10,17 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
 public class Aktualizace {
-	private URL newestVerUrl;
+	private URL updateUrl;
 	private URL newestVerNumUrl;
 	private String thisProgramPath;
 	public final float newestVerNum;
 	private boolean downloaded;
 	public static final File newestVerNumFile = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\newestVerNum.txt");
-	public static final File newestVer = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\newestVer.jar");
+	public static final File update = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\update.jar");
+	private Uvod uvod;
 	
-	public Aktualizace() throws URISyntaxException, IOException {
+	public Aktualizace(Uvod uvod) throws URISyntaxException, IOException {
+		this.uvod = uvod;
 		 loadUrls();
 		 thisProgramPath = getThisProgramPath();
 		 newestVerNum = getNewestVerNum();
@@ -44,7 +46,7 @@ public class Aktualizace {
 	
 	private void loadUrls() {
 		 try {
-			 newestVerUrl = new URL("https://drive.google.com/uc?export=download&id=13UJKideTMyW6U19PYA3WhKOV0QgqISlC");
+			 updateUrl = new URL(uvod.getCurrentServer().getUpdateLink());
 			 newestVerNumUrl = new URL("https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp");
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
@@ -72,7 +74,7 @@ public class Aktualizace {
 	}
 	
 	public void downloadUpdate() throws IOException {
-			download(newestVerUrl, newestVer.getPath());
+			download(updateUrl, update.getPath());
 			downloaded = true;
 	}
 	
@@ -81,7 +83,7 @@ public class Aktualizace {
 			downloadUpdate();
 		}
 		new ProcessBuilder().command("cmd.exe", "/c", "PING -n 2 127.0.0.1>nul && " +
-				"move /Y " + newestVer.getPath() + " " + thisProgramPath + " && " + thisProgramPath).start();
+				"move /Y \"" + update.getPath() + "\"  \"" + thisProgramPath + "\" && \"" + thisProgramPath + "\"").start();
 		System.exit(0);
 	}
 }
