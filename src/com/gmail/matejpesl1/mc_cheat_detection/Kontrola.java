@@ -25,10 +25,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-import javax.swing.JOptionPane;
 
 import com.gmail.matejpesl1.mc_cheat_detection.Uvod.Rezim;
 
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.util.Zip4jConstants;
@@ -118,7 +120,7 @@ public class Kontrola extends Thread {
 		}
 		vypisStavKontroly("3");
 		
-		ArrayList<String> nazvySouboruVeVersionsArr =new HledaniSouboru
+		ArrayList<String> nazvySouboruVeVersionsArr = new HledaniSouboru
 				((String)null, null).prohledejSoubory(SLOZKA_VERSIONS, false, true, null);
 		
 		ArrayList<String> nazvySouboruVMinecraftArr = new HledaniSouboru
@@ -187,7 +189,7 @@ public class Kontrola extends Thread {
 				}
 				
 				String obsazeneKeywordyLogu = null;
-					obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
+				obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
 				if (obsazeneKeywordyLogu != null) {
 					keywordyVLatestLogu = keywordyVLatestLogu + obsazeneKeywordyLogu;
 				} 
@@ -210,7 +212,7 @@ public class Kontrola extends Thread {
 			pridejDuvodProHackera("Byly nalezeny soubory, které jsou pravdìpodobnì hacky.");
 		}
 		synchronized (this) {
-			while (!Uvod.kontrolaJeSpustena()) {
+			while (!Uvod.isInspectionRunning()) {
 				try {
 					wait();
 				} catch (InterruptedException e) {
@@ -254,7 +256,13 @@ public class Kontrola extends Thread {
 		
 		vypisStavKontroly("13");
 		
-		uvod.zmenStav("odesílání výsledkù");
+		Platform.runLater(new Runnable(){
+			@Override
+			public void run() {
+				   uvod.changeInspectionState("Odesílání výsledkù");
+			}
+		});
+
 			String chyba = Email.odesliMail(uvod.getCurrentServer().getMail(), "Výsledky kontroly PC hráèe " + jmenoHrace,
 					vysledky + "<br><br>----------------------------------------------------------------------------"
 							+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
@@ -265,7 +273,12 @@ public class Kontrola extends Thread {
 		
 		aktualizujInfoOPredeslychKontrolach(PREDESLE_KONTROLY_INFO_TXT, celkovyPocetKontrol, LocalDateTime.now().format(FORMATTER));
 		vypisStavKontroly("FINAL");
-		uvod.ukazDokoncenouKontrolu(chyby);
+		Platform.runLater(new Runnable(){
+			@Override
+			public void run() {
+				uvod.showInspectionCompletedScreen(chyby);
+			}
+		});
 	}
 	
 	public void vytvorVlastniSlozku() {
@@ -567,38 +580,73 @@ public class Kontrola extends Thread {
 		return napisDiff;
 	}
 	
-	public boolean jeJmenoNalezeno(String jmeno) {
-		if (cestyKLogum.isEmpty()) {
-			for (String cestaKLogu : new HledaniSouboru(new ArrayList<String>(Arrays.asList("gz")), null).prohledejSoubory(SLOZKA_LOGS, false, false, null)) {
-				cestyKLogum.add(cestaKLogu);
-			}
-		}
-		for (String cestaKLogu : cestyKLogum) {
-			if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
-				String obsahLogu = prevedObsahSouboruNaString(cestaKLogu);
-				String regex = "\\b" + jmeno + "\\b";
-				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-				Matcher matcher = pattern.matcher(obsahLogu);
-				if (matcher.find()) {
-					return true;
+	private ArrayList<String> getPathsToLogs() {
+		ArrayList<String> pathsToLogs = new ArrayList<>();
+			for (String cestaKLogu : new HledaniSouboru
+					(new ArrayList<String>(Arrays.asList("gz", "log")), null).prohledejSoubory
+					(SLOZKA_LOGS, false, false, null)) {
+				if (!pathsToLogs.contains(cestaKLogu)) {
+					pathsToLogs.add(cestaKLogu);
+					System.out.println("added " + cestaKLogu + " to Array cestyKLogum");
 				}
 			}
+			return pathsToLogs;
+	}
+	
+	public boolean jeJmenoNalezeno(String jmeno) {
+		if (cestyKLogum.isEmpty()) {
+			cestyKLogum.addAll(getPathsToLogs());
+		}
+
+		String nameRegex = "\\b" + jmeno + "\\b";
+		Pattern namePattern = Pattern.compile(nameRegex, Pattern.CASE_INSENSITIVE);
+		
+		String aktualniDatum = LocalDateTime.now().format(FORMATTER);
+		for (String cestaKLogu : cestyKLogum) {
+			String datumPosledniUpravy = ziskejDatumPosledniUpravy(new File(cestaKLogu));
+			long dobaOdPosledniUpravyLogu =
+					ziskejRozdilMeziDaty(aktualniDatum, datumPosledniUpravy);
+			if (dobaOdPosledniUpravyLogu/60/24 > 15) {
+				continue;
+			}
+			
+			String obsahLogu = prevedObsahSouboruNaString(cestaKLogu);
+			 String[] radky = obsahLogu.split("\\r?\\n");
+		        for (String radek : radky) {
+		            if (!radek.contains("[CHAT]")) {
+		            	Matcher matcher = namePattern.matcher(radek);
+		            	if (matcher.find()) {
+		            		return true;
+		            	}
+		            }
+		        }
 		}
 		return false;
 	}
 	
 	public void prerusKontrolu(String chyba, boolean ukazUzivateli) {
 		System.err.println(chyba);
-		chyba = ukazUzivateli ? chyba : "";
-		JOptionPane.showMessageDialog(null, "Pøi kontrole došlo k chybì" + " (" + stav + ")"
-		+ ", která zabránila normální funkci programu. Žádná data nebudou odeslána."
-				+ " Chyba: " + chyba, "Chyba", JOptionPane.ERROR_MESSAGE);
-			zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
-			zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
-		System.exit(0);
+		
+		Platform.runLater(new Runnable(){
+			@Override
+			public void run() {
+				Alert alert = new Alert(AlertType.ERROR);
+				alert.setTitle("Chyba");
+				alert.setHeaderText("Pøi kontrole došlo k chybì" + " (" + stav + ")"
+						+ ", která zabránila normální funkci programu. Žádná data nebudou odeslána.");
+				if (ukazUzivateli) {
+					alert.setContentText(" Chyba: " + chyba);	
+				}				
+				alert.showAndWait();
+			}
+		});
+
+		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
+		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
+		Platform.exit();
 	}
 	
-	public void vynuceneUkonci() {
+	public void ukonci() {
 		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", false);
 		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", false);
 			try {
@@ -617,6 +665,8 @@ public class Kontrola extends Thread {
 				zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
 				zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);	
 			}
+			Platform.exit();
+			System.exit(0);
 	}
 	
 	public void vypisStavKontroly(String stav) {

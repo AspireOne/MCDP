@@ -9,7 +9,7 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
-public class Aktualizace {
+public class Update {
 	private URL updateUrl;
 	private URL newestVerNumUrl;
 	private String thisProgramPath;
@@ -19,7 +19,7 @@ public class Aktualizace {
 	public static final File update = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\update.jar");
 	private Uvod uvod;
 	
-	public Aktualizace(Uvod uvod) throws URISyntaxException, IOException {
+	public Update(Uvod uvod) throws URISyntaxException, IOException {
 		this.uvod = uvod;
 		 loadUrls();
 		 thisProgramPath = getThisProgramPath();

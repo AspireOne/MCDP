@@ -8,4 +8,5 @@ public interface Server {
 	public String getLogo();
 	public Color getBorderColor();
 	public String getUpdateLink();
+	public String getName();
 }
