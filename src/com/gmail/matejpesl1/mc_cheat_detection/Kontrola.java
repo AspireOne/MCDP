@@ -68,6 +68,10 @@ public class Kontrola extends Thread {
 	private String jmenoHrace;
 	private int duvodyProHackeraCounter;
 	private int celkovyPocetKontrol;
+	private static final boolean LATEST_LOG_EXISTS = new File(LOGS_CESTA + "\\latest.log").exists();
+	private static final boolean LOGS_FOLDER_EXISTS = SLOZKA_LOGS.exists();
+	private static final boolean PLOCHA_EXISTS = SLOZKA_PLOCHA.exists();
+	private static final boolean STAZENE_EXISTS = SLOZKA_STAZENE.exists();
 	private static final String pocatecniInfo = 0 + "\n" + 0;
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	String stav;
@@ -81,6 +85,7 @@ public class Kontrola extends Thread {
 		       prerusKontrolu("neošetøená vyjímka", true);
 		    }
 		 });
+		
 		DEFAULT_LOG_KEYWORDS = new ArrayList<>(Arrays.asList("hack", "fly", "antiknockback", "speed",
 				"tpaura", "tp-aura", "regen", "blink", "nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker"));
 		DEFAULT_LOG_KEYWORDS.addAll(DEFAULT_KEYWORDS);
@@ -102,11 +107,18 @@ public class Kontrola extends Thread {
 			try {
 				dobaOdPosledniKontroly = ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), datumPosledniKontroly);	
 			} catch (DateTimeParseException e) {
+				e.printStackTrace();
 				napisDoSouboru(PREDESLE_KONTROLY_INFO_TXT, pocatecniInfo);
-				prerusKontrolu("Nastala chyba pøi ètení datumu a probìhl pokus o automatickou opravu. Zkuste to, prosím, znovu.", true);
+				prerusKontrolu("Nastala chyba pøi ètení datumu a"
+						+ " probìhl pokus o automatickou opravu. Zkuste to, prosím, znovu.", true);
+			} catch (NullPointerException e) {
+				e.printStackTrace();
+				dobaOdPosledniKontroly = -1;
+				chyby.add("textový soubor, který zaznamenává pøedešlé kontroly, nebyl nalezen.");
 			}
 		}
 		vypisStavKontroly("2");
+		
 		if (Uvod.rezim != Rezim.DEBUG) {
 			if (dobaOdPosledniKontroly < 3 && dobaOdPosledniKontroly >= 1) {
 				prerusKontrolu("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
@@ -114,8 +126,9 @@ public class Kontrola extends Thread {
 		}
 		
 		long dobaOdPosledniUpravyVersions =
-				ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)); 
-		if (dobaOdPosledniUpravyVersions < 15) {
+				ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(SLOZKA_VERSIONS));	
+		
+		if (dobaOdPosledniUpravyVersions < 15 && dobaOdPosledniUpravyVersions >= 0) {
 			pridejDuvodProHackera("Složka versions byla upravována pøed ménì než 15 minutami");
 		}
 		vypisStavKontroly("3");
@@ -128,11 +141,25 @@ public class Kontrola extends Thread {
 		
 		vypisStavKontroly("4");
 		
-		ArrayList<String> nazvySouboruVeStazenychArr = new HledaniSouboru
-				(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_STAZENE, false, true, null);
+		ArrayList<String> nazvySouboruVeStazenychArr = new ArrayList<String>();				
+		if (STAZENE_EXISTS) {
+			nazvySouboruVeStazenychArr = new HledaniSouboru
+					(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_STAZENE, false, true, null);	
+		} else {
+			String error = "složka stažené nebyla nalezena/neexistuje.";
+			nazvySouboruVeStazenychArr.add(error);
+			chyby.add(error);
+		}
 		
-		ArrayList<String> nazvySouboruNaPloseArr = new HledaniSouboru
-				(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_PLOCHA, false, true, null);
+		ArrayList<String> nazvySouboruNaPloseArr = new ArrayList<>();
+		if (PLOCHA_EXISTS) {
+			nazvySouboruNaPloseArr = new HledaniSouboru
+					(new ArrayList<String>(Collections.singletonList("jar")), null).prohledejSoubory(SLOZKA_PLOCHA, false, true, null);	
+		} else {
+			String error = "Plocha nebyla nalezena.";
+			nazvySouboruNaPloseArr.add(error);
+			chyby.add(error);
+		}
 		
 		vypisStavKontroly("5");
 		
@@ -149,62 +176,81 @@ public class Kontrola extends Thread {
 		String nazvySouboruNaPlose =
 				prevedArrayNaString(nazvySouboruNaPloseArr, " | ");
 		
-		String keywordyVLatestLogu = 
-					prevedArrayNaString(ziskejObsazeneKeywordyLogu(LOGS_CESTA + "\\latest.log", logKeywords), " | ");
-		
 		vypisStavKontroly("7");
 		
-		Thread t1 = najdiKeywordyVeSlozce(SLOZKA_MINECRAFT, keywords, new ArrayList<String>(Collections.singletonList("assets")));
-		Thread t2 = najdiKeywordyVeSlozce(SLOZKA_STAZENE, keywords, null);
-		Thread t3 = najdiKeywordyVeSlozce(SLOZKA_PLOCHA, keywords, null);
+		Thread tStazene = najdiKeywordyVeSlozce(SLOZKA_STAZENE, keywords, null);
+		Thread tPlocha = najdiKeywordyVeSlozce(SLOZKA_PLOCHA, keywords, null);
 		vypisStavKontroly("8");
-		t1.start();
-		t2.start();
-		t3.start();
-		ArrayList<String> nalezeneSoubory = new HledaniSouboru((String)null, keywords).prohledejSoubory(SLOZKA_ROAMING, false, true, null);
-		nalezeneJmenaHacku.addAll(nalezeneSoubory);
+		if (STAZENE_EXISTS) {
+			tStazene.start();	
+		}
+		if (PLOCHA_EXISTS) {
+			tPlocha.start();	
+		}
+		if (SLOZKA_ROAMING.exists()) {
+			ArrayList<String> nalezeneSoubory =
+					new HledaniSouboru((String)null, keywords)
+					.prohledejSoubory(SLOZKA_ROAMING, true, true, new ArrayList<String>(Collections.singletonList("assets")));
+			nalezeneJmenaHacku.addAll(nalezeneSoubory);	
+		} else {
+			ArrayList<String> nalezeneSoubory =
+					new HledaniSouboru((String)null, keywords)
+					.prohledejSoubory(SLOZKA_MINECRAFT, false, true, new ArrayList<String>(Collections.singletonList("assets")));
+			nalezeneJmenaHacku.addAll(nalezeneSoubory);	
+		}
+		
 		vypisStavKontroly("9");
 		try {
-			if (t1.isAlive()) {
-				t1.join();
-			}
-			if (t2.isAlive()) {
-				t2.join();
+			if (tStazene.isAlive()) {
+				tStazene.join();
 			}
 			
-			if (t3.isAlive()) {
-				t3.join();
+			if (tPlocha.isAlive()) {
+				tPlocha.join();
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			prerusKontrolu("Nastala chyba pøi pøipojování vláken", false);
 		}
+		
 		vypisStavKontroly("10");
 		String nalezeneJmenaHackuStr = prevedArrayNaString(nalezeneJmenaHacku, ", ");
-
-		for (String cestaKLogu : cestyKLogum) {
-			if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
-				if (new File(cestaKLogu).getName().contains("debug")) {
-					continue;
+		
+		String keywordsInLogs = "";
+		if (LOGS_FOLDER_EXISTS) {
+			for (String cestaKLogu : cestyKLogum) {
+				if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
+					if (new File(cestaKLogu).getName().contains("debug")) {
+						continue;
+					}
+					
+					String obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
+					if (obsazeneKeywordyLogu != null) {
+						keywordsInLogs = keywordsInLogs + obsazeneKeywordyLogu;
+					} 
 				}
-				
-				String obsazeneKeywordyLogu = null;
-				obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
-				if (obsazeneKeywordyLogu != null) {
-					keywordyVLatestLogu = keywordyVLatestLogu + obsazeneKeywordyLogu;
-				} 
-			}
+			}	
+		} else {
+			String error = "složka s logy nebyla nalezena";
+			keywordsInLogs = "nebyla nalezena složka s logy";
+			chyby.add(error);
 		}
+		
 		vypisStavKontroly("11");
 
 		boolean nestandardniJmena = false;
+		ArrayList<String> nestandardniNazvySlozek = new ArrayList<>();
 		for (String nazevSlozky : nazvySouboruVeVersionsArr) {
-			if (nazevSlozky.contains("[0-9]+")) {
+			if (!nazevSlozky.matches(".*\\d.*")) {
 				nestandardniJmena = true;
+				nestandardniNazvySlozek.add(nazevSlozky);
+				System.out.println("matches " + nazevSlozky);
 			}
 		}
 		if (nestandardniJmena) {
-			pridejDuvodProHackera("název/názvy Minecraft verze ve složce versions je/jsou nestandardní.");
+			pravdepodobnyHacker = true;
+			pridejDuvodProHackera("název/názvy Minecraft verze ve složce versions je/jsou nestandardní. (" +
+			prevedArrayNaString(nestandardniNazvySlozek, " | ") + ")");
 		}
 
 		if (nalezeneJmenaHacku.size() > 0) {
@@ -217,7 +263,7 @@ public class Kontrola extends Thread {
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
-					prerusKontrolu("Nastala chyba pøi syncrhonizování vláken", true);
+					prerusKontrolu("Nastala chyba pøi synchronizování vláken", true);
 				}	
 			}
 		}
@@ -236,8 +282,8 @@ public class Kontrola extends Thread {
 						"žádné pøedešlé kontroly neprobìhly" : ziskejSlovniRozdilMeziDaty(dobaOdPosledniKontroly, datumPosledniKontroly)) + "<br><br>"
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b>" + "<br>" + (nalezeneJmenaHacku.isEmpty() ?
 						"žádné" : nalezeneJmenaHackuStr) + "<br><br>"
-				+ "<b>nalezené klíèové slova v log souborech za posledních 15 dní, které se shodují se jménem hackù:</b>" + "<br>" + (keywordyVLatestLogu == null ?
-						"žádné" : keywordyVLatestLogu) + "<br><br>"
+				+ "<b>nalezené klíèové slova v log souborech za posledních 15 dní, které se shodují se jménem hackù:</b>" + "<br>" + (keywordsInLogs == null ?
+						"žádné" : keywordsInLogs) + "<br><br>"
 				+ "<b>názvy souborù ve složce versions v hloubce 1: </b>" + "<br>" + nazvySouboruVeVersions + "<br><br>"
 				+ "<b>Názvy všech \"jar\" souborù ve složce stažené: </b>" + "<br>" + nazvySouboruVeStazenych + "<br><br>"
 				+ "<b>Názvy všech \"jar\" souborù na ploše: </b>" + "<br>" + (nazvySouboruNaPlose == null ? "žádné" : nazvySouboruNaPlose) + "<br><br>"
@@ -246,12 +292,17 @@ public class Kontrola extends Thread {
 				ziskejSlovniRozdilMeziDaty(dobaOdPosledniUpravyVersions, ziskejDatumPosledniUpravy(SLOZKA_VERSIONS)) + "<br><br>"
 				+ "<b>Chyby pøi  kontrole: </b>" + "<br>" + (chyby.isEmpty() ? "žádné" : chyby);
 
-		String obsahLatestLogu = zkratString(prevedObsahSouboruNaString(LOGS_CESTA + "\\latest.log"), POCET_RADKU_LOGU_V_NAHLEDU);
-		try {
-			vytvorZip(new File(LOGS_CESTA + "\\latest.log"), LATEST_ZIP.toString(), null);
-		} catch (Exception e) {
-			chyby.add("Nepodaøilo se zazipovat latest log.");
-			e.printStackTrace();
+		String obsahLatestLogu = "";
+		if (LATEST_LOG_EXISTS) {
+			obsahLatestLogu = zkratString(prevedObsahSouboruNaString(LOGS_CESTA + "\\latest.log"), POCET_RADKU_LOGU_V_NAHLEDU);
+			try {
+				vytvorZip(new File(LOGS_CESTA + "\\latest.log"), LATEST_ZIP.toString(), null);
+			} catch (Exception e) {
+				chyby.add("Nepodaøilo se zazipovat latest log.");
+				e.printStackTrace();
+			}
+		} else {
+			obsahLatestLogu = "latest log nebyl nazelen/neexistuje";
 		}
 		
 		vypisStavKontroly("13");
@@ -262,13 +313,27 @@ public class Kontrola extends Thread {
 				   uvod.changeInspectionState("Odesílání výsledkù");
 			}
 		});
-
-			String chyba = Email.odesliMail(uvod.getCurrentServer().getMail(), "Výsledky kontroly PC hráèe " + jmenoHrace,
-					vysledky + "<br><br>----------------------------------------------------------------------------"
-							+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
-									+ " </b><br><br>" + obsahLatestLogu, LATEST_ZIP.getPath(), "latest_log.zip");
-		if (chyba != null) {
-			prerusKontrolu(chyba, true);
+		
+		String title = "Výsledky kontroly PC hráèe " + jmenoHrace;
+		String content = "";
+		if (LATEST_LOG_EXISTS) {
+			content = vysledky + "<br><br>----------------------------------------------------------------------------"
+					+ "<br><b>Prvních " + POCET_RADKU_LOGU_V_NAHLEDU + " øádkù Nejnovìjšího logu:"
+					+ " </b><br><br>" + obsahLatestLogu;	
+		} else {
+			content = vysledky + "<br><br>----------------------------------------------------------------------------"
+					+ "<br><b>Latest log nebyl nalezen/neexistuje. </b>";
+		}
+		String chyba = null;
+		if (LATEST_LOG_EXISTS) {
+			chyba = Email.odesliMail(uvod.getCurrentServer().getMail(), title,
+					content, LATEST_ZIP.getPath(), "latest_log.zip");
+			if (chyba != null) {
+				prerusKontrolu(chyba, true);
+			}	
+		} else {
+			chyba = Email.odesliMail(uvod.getCurrentServer().getMail(), title,
+					content);
 		}
 		
 		aktualizujInfoOPredeslychKontrolach(PREDESLE_KONTROLY_INFO_TXT, celkovyPocetKontrol, LocalDateTime.now().format(FORMATTER));
@@ -421,12 +486,14 @@ public class Kontrola extends Thread {
 		}
 	}
 	
-	private void zmenAtributSouboru(File soubor, String atributKeZmeneni, boolean stavAtributu) {
+	private static void zmenAtributSouboru(File soubor, String atributKeZmeneni, boolean stavAtributu) {
 		try {
 			Files.setAttribute(soubor.toPath(), atributKeZmeneni, stavAtributu);
 		} catch (IOException e) {
 			e.printStackTrace();
-			chyby.add("Nastal problém pøi mìnìní atributu složek");
+			//chyby.add("Nastal problém pøi mìnìní atributu složek");
+		} catch (NullPointerException e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -466,6 +533,7 @@ public class Kontrola extends Thread {
 	
 	private String prevedArrayNaString(ArrayList<String> array, String rozdeleni) {
 		String vyslednyString = null;
+
 		for (String polozka : array) {
 			vyslednyString = (vyslednyString == null ? "" : vyslednyString + rozdeleni) + polozka;
 		}
@@ -483,6 +551,9 @@ public class Kontrola extends Thread {
 	
 	private ArrayList<String> ziskejObsazeneKeywordyLogu(String log, ArrayList<String> keywords) {
 		ArrayList<String> obsazeneKeywordy = new ArrayList<>();
+		if (!new File(log).exists()) {
+			return null;
+		}
 		String logText = prevedObsahSouboruNaString(log);
 		
         String[] radky = logText.split("\\r?\\n");
@@ -519,7 +590,7 @@ public class Kontrola extends Thread {
 		return vsechnyRadky;
 	}
 	
-	private String ziskejDatumPosledniUpravy(File slozka) {
+	private String ziskejDatumPosledniUpravy(File slozka) throws NullPointerException {
 		LocalDateTime dateAndTime =
 			    LocalDateTime.ofInstant(Instant.ofEpochMilli(slozka.lastModified()), ZoneId.systemDefault());
 		String dateAndTimeStr = dateAndTime.format(FORMATTER);
@@ -536,6 +607,11 @@ public class Kontrola extends Thread {
 	public String prevedObsahSouboruNaString(String cestaKSouboru) { 
 	    String data = null;
 	    boolean compressed = false;
+	    boolean fileExists = new File(cestaKSouboru).exists();
+	    if (!fileExists) {
+	    	return null;
+	    }
+	    
 	    try {
 	    	if (cestaKSouboru.endsWith(".gz")) {
 	    		compressed = true;
@@ -548,6 +624,7 @@ public class Kontrola extends Thread {
 			e.printStackTrace();
 			chyby.add("Nastal interní problém pøi ètení obsahu souboru.");
 		}
+	    
 	    if (compressed) {
 	    	try {
 				odstranSoubor(cestaKSouboru);
@@ -596,8 +673,11 @@ public class Kontrola extends Thread {
 	public boolean jeJmenoNalezeno(String jmeno) {
 		if (cestyKLogum.isEmpty()) {
 			cestyKLogum.addAll(getPathsToLogs());
+			if (cestyKLogum.isEmpty()) {
+				return false;
+			}
 		}
-
+		
 		String nameRegex = "\\b" + jmeno + "\\b";
 		Pattern namePattern = Pattern.compile(nameRegex, Pattern.CASE_INSENSITIVE);
 		
@@ -640,13 +720,10 @@ public class Kontrola extends Thread {
 				alert.showAndWait();
 			}
 		});
-
-		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", true);
-		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", true);
-		Platform.exit();
+		ukonci();
 	}
 	
-	public void ukonci() {
+	public static void ukonci() {
 		zmenAtributSouboru(VLASTNI_SLOZKA, "dos:hidden", false);
 		zmenAtributSouboru(PREDESLE_KONTROLY_INFO_TXT, "dos:hidden", false);
 			try {

@@ -1,7 +1,5 @@
 package com.gmail.matejpesl1.mc_cheat_detection;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -10,18 +8,14 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-import javax.swing.GroupLayout.Alignment;
-
 import com.gmail.matejpesl1.mc_cheat_detection.Kontrola;
 import com.gmail.matejpesl1.servers.Basicland;
 import com.gmail.matejpesl1.servers.Debug;
 import com.gmail.matejpesl1.servers.Server;
 
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.scene.Scene;
@@ -41,7 +35,6 @@ import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -51,20 +44,31 @@ import javafx.scene.text.TextAlignment;
 
 
 public class Uvod extends Application {
+	public static enum Rezim {DEBUG, BASICLAND};
+	public static final Rezim rezim = Rezim.DEBUG;
+	public static final float VERZE_PROGRAMU = 2.6f;
+	
+	private static final int SPLASH_DURATION = 3000;
+	
 	private static final int W_WIDTH = 500;
 	private static final int W_HEIGHT = 200;
 	private static final int IMG_SIZE = 70;
 	private static final int DEFAULT_IMG_Y = (W_HEIGHT/2 - IMG_SIZE/2) + 50;
 	private static final int IMGS_OFFSET = 100;
+	private static final int LOGO_SIZE = IMG_SIZE + 50;
 	
-	public static final Rezim rezim = Rezim.DEBUG;
+	public static ImageView checkMark;
+	public static ImageView xMark;
+	public static ImageView exit;
+	public static ImageView programLogo;
+	public static ImageView retry;
+	
 	public static final Pattern NEPOVOLENE_ZNAKY_VE_JMENE = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
-	public static final float VERZE_PROGRAMU = 2.6f;
 	public static final int MAX_DELKA_JMENA = 16;
 	public static final int MIN_DELKA_JMENA = 3;
+	
 	private static boolean inspectionRunning = false;
-	public static enum Podminka{PRIPOJENI_K_INTERNETU, SLOZKA_MINECRAFT};
-	public static enum Rezim {DEBUG, BASICLAND};
+	public static enum Podminka{PRIPOJENI_K_INTERNETU, SLOZKA_MINECRAFT, SLOZKA_VERSIONS};
 	private Kontrola kontrola;
 	private Server currentServer;
 	private Stage stage;
@@ -76,18 +80,42 @@ public class Uvod extends Application {
 	@Override
 	public void start(Stage stage) {
 		this.stage = stage;
-		kontrola = new Kontrola(this);
-		kontrola.start();
-		currentServer = determineServer(rezim);
-		showSplashScreen(3000);
-		
+		loadImages();
 		prepareGUI();
-		
-		showUpdateScreen();
-		
-		showAgreementScreen();
-	
+		begin();
 	}
+	public void begin() {
+		Podminka unfulfilledCondition = getUnfulfilledCondition();
+		if (unfulfilledCondition != null) {
+			showUnfulfilledConditionScreen(unfulfilledCondition);
+		} else {
+			kontrola = new Kontrola(this);
+			kontrola.start();
+
+			currentServer = determineServer(rezim);
+			if (rezim != Rezim.DEBUG) {
+				showSplashScreen(SPLASH_DURATION);	
+			} else {
+				showSplashScreen(500);
+			}
+			
+			showUpdateScreen();
+			
+			showAgreementScreen();	
+		}
+	}
+	
+	private void loadImages() {
+		programLogo = new ImageView(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
+		checkMark = new ImageView(new Image(getInternalFile("/resources/UI/checkmark.png").toString()));	
+		xMark = new ImageView(new Image(getInternalFile("/resources/UI/xmark.png").toString()));
+		exit = new ImageView(new Image(getInternalFile("/resources/UI/exit.png").toString()));
+		retry = new ImageView(new Image(getInternalFile("/resources/UI/retry.png").toString()));
+	}
+
+	 public static URL getInternalFile(String path) {
+		 return Uvod.class.getResource(path);
+	 }
 	
 	private void showSplashScreen(int duration) {
 		try {
@@ -113,27 +141,27 @@ public class Uvod extends Application {
 		return currentServer;
 	}
 	
-	public void handleNameInput() {
-		
-	}
-	
 	public void showInspectionRunningScreen(String state) {
-		try {	
-        Text txt = new Text(10, 35, state);
-       
-        txt.setFont(Font.font("Verdana", 19));
-        txt.setTextAlignment(TextAlignment.CENTER);
-        txt.setWrappingWidth(W_WIDTH - 10);
+
+		Text txtProgress = new Text(10, 35, state);
+      
+	    programLogo.setX((W_WIDTH/2 - LOGO_SIZE/2));
+        programLogo.setY(W_HEIGHT - LOGO_SIZE - 10);
+        
+        programLogo.setFitHeight(LOGO_SIZE);
+        programLogo.setFitWidth(LOGO_SIZE);
+        
+        txtProgress.setFont(Font.font("Verdana", 19));
+        txtProgress.setTextAlignment(TextAlignment.CENTER);
+        txtProgress.setWrappingWidth(W_WIDTH - 10);
         
         BorderPane pane = new BorderPane();
         pane.setBackground(getDefaultBackground());
-        pane.getChildren().add(txt);
-
+        pane.getChildren().addAll(txtProgress, programLogo);
+        
         Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
+        
         stage.setScene(scene);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 	
 	public void changeInspectionState(String state) {
@@ -141,14 +169,14 @@ public class Uvod extends Application {
 	}
 	
 	private void showUpdateScreen() {
-        Text progress = new Text(10, 35, "Probíhá kontrola aktualizací...");
-        progress.setFont(Font.font("Verdana", 19));
-        progress.setTextAlignment(TextAlignment.CENTER);
-        progress.setWrappingWidth(W_WIDTH - 10);
+        Text txtProgress = new Text(10, 35, "Probíhá kontrola aktualizací...");
+        txtProgress.setFont(Font.font("Verdana", 19));
+        txtProgress.setTextAlignment(TextAlignment.CENTER);
+        txtProgress.setWrappingWidth(W_WIDTH - 10);
         
 		BorderPane pane = new BorderPane();
 		pane.setBackground(getDefaultBackground());
-		pane.getChildren().add(progress);
+		pane.getChildren().add(txtProgress);
 
 		//this is here just because of bug - this is a workaround
 		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
@@ -174,7 +202,7 @@ public class Uvod extends Application {
 			Alert alert = new Alert(AlertType.INFORMATION);
 			alert.setTitle("Aktualizace");
 			alert.setHeaderText("Aktualizace dostupná! Bude stažena a program bude restartován.");
-			progress.setText("Stahování...");
+			txtProgress.setText("Stahování...");
 			alert.showAndWait();
 			update(update);
 		}
@@ -207,7 +235,7 @@ public class Uvod extends Application {
 	private void showErrorAlert(String chyba) {
 		Alert alert = new Alert(AlertType.ERROR);
 		alert.setTitle("Chyba");
-		alert.setHeaderText(chyba);	
+		alert.setHeaderText("Chyba: " + chyba);
 		alert.showAndWait();
 	}
 	
@@ -217,133 +245,119 @@ public class Uvod extends Application {
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 	          public void handle(WindowEvent we) {
 	              System.out.println("Stage is closing");
-	              kontrola.ukonci();
+	              Kontrola.ukonci();
 	          }
 	      });
 		stage.centerOnScreen();
 	}
 	
 	private void showAgreementScreen() {
-			FileInputStream yInput = null;
-			FileInputStream nInput = null;
-			try {
-				yInput = new FileInputStream("C:\\Users\\42073\\Desktop\\y2.png");
-				nInput = new FileInputStream("C:\\Users\\42073\\Desktop\\n2.png");
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			}
+		checkMark.setX((W_WIDTH/2 - IMG_SIZE/2) - IMGS_OFFSET);
+	    checkMark.setY(DEFAULT_IMG_Y);
+	    checkMark.setFitHeight(IMG_SIZE);
+	    checkMark.setFitWidth(IMG_SIZE);
+	        
+	    xMark.setX((W_WIDTH/2 - IMG_SIZE/2) + IMGS_OFFSET);
+	    xMark.setY(DEFAULT_IMG_Y);
+	    xMark.setFitHeight(IMG_SIZE);
+	    xMark.setFitWidth(IMG_SIZE);
+	       
+	        
+	    Text txtTitle = new Text(10, 35, "Souhlasíte s poskytnutím serveru " + currentServer.getName() +
+	    		" název, typ nebo obsah nìkterých svých souborù?");
+	    txtTitle.setFont(Font.font("Verdana", 19));
+	    txtTitle.setTextAlignment(TextAlignment.CENTER);
+	    txtTitle.setWrappingWidth(W_WIDTH - 10);
+	        
+		BorderPane pane = new BorderPane();
+		pane.setBackground(getDefaultBackground());
+		pane.getChildren().add(checkMark);
+		pane.getChildren().add(xMark);
+		pane.getChildren().add(txtTitle);
 			
-	        ImageView n = new ImageView(new Image(nInput));
-	        ImageView y = new ImageView(new Image(yInput));
+		Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
+		stage.setScene(scene);
+		stage.show();
 	        
-	        y.setX((W_WIDTH/2 - IMG_SIZE/2) - IMGS_OFFSET);
-	        y.setY(DEFAULT_IMG_Y);
-	        n.setX((W_WIDTH/2 - IMG_SIZE/2) + IMGS_OFFSET);
-	        n.setY(DEFAULT_IMG_Y);
-	        
-	        n.setFitHeight(IMG_SIZE);
-	        n.setFitWidth(IMG_SIZE);
-	        y.setFitHeight(IMG_SIZE);
-	        y.setFitWidth(IMG_SIZE);
-	        
-	        Text txt = new Text(10, 35, "Souhlasíte s poskytnutím serveru " + currentServer.getName() +
-	        		" název, typ nebo obsah nìkterých svých souborù?");
-	        txt.setFont(Font.font("Verdana", 19));
-	        txt.setTextAlignment(TextAlignment.CENTER);
-	        txt.setWrappingWidth(W_WIDTH - 10);
-	        
-			BorderPane pane = new BorderPane();
-			pane.setBackground(getDefaultBackground());
-			pane.getChildren().add(y);
-			pane.getChildren().add(n);
-			pane.getChildren().add(txt);
-			
-			Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
-			stage.setScene(scene);
-
-			stage.show();
-	        
-			 y.setOnMousePressed(new EventHandler<MouseEvent>() {
-		            @Override
-		            public void handle(MouseEvent event) {
-		            	System.out.println("souhlas");
-		            	pane.getChildren().clear();
-		            	showInputNameScreen();
-		            }            
-		        });
-			 n.setOnMousePressed(new EventHandler<MouseEvent>() {
-		            @Override
-		            public void handle(MouseEvent event) {
-		            	System.out.println("nesouhlas");
-		            	pane.getChildren().clear();
-		            	showDisagreedScreen();
-		            }            
-		        });
+		checkMark.setOnMousePressed(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				pane.getChildren().clear();
+				showInputNameScreen();
+			}            
+		});
+		xMark.setOnMousePressed(new EventHandler<MouseEvent>() {
+			@Override
+		    public void handle(MouseEvent event) {
+				pane.getChildren().clear();
+		        showDisagreedScreen();
+			}            
+		});
 	}
 	
 	private void showInputNameScreen() {
-		     VBox box = new VBox();  
-		     box.setBackground(getDefaultBackground());
-		     box.setPadding(new Insets(10, 20, 150, 20));  
-		     box.setSpacing(10);
+		VBox vBox = new VBox();  
+		vBox.setBackground(getDefaultBackground());
+		vBox.setPadding(new Insets(10, 20, 150, 20));  
+		vBox.setSpacing(10);
 
-		     Text title = new Text("Zadejte své hráèské jméno");
-		     title.setFont(Font.font("Verdana", 19));
-		     title.setTextAlignment(TextAlignment.CENTER);
-		     title.setWrappingWidth(W_WIDTH - 35);
-		     title.setX(0);
+		Text txtTitle = new Text("Zadejte své hráèské jméno");
+		txtTitle.setFont(Font.font("Verdana", 19));
+		txtTitle.setTextAlignment(TextAlignment.CENTER);
+		txtTitle.setWrappingWidth(W_WIDTH - 35);
+		txtTitle.setX(0);
 		     
-		     TextArea nameArea = new TextArea(""); 
-		     nameArea.setStyle("-fx-font-size: 4em;");
+		TextArea nameArea = new TextArea(""); 
+		nameArea.setStyle("-fx-font-size: 4em;");
+		
+		Button confirm = new Button("Potvrdit");
+		confirm.setFont(Font.font("Verdana", 14));
+		confirm.setMinWidth(100);
+		confirm.setMinHeight(40);
 		     
-		     Button confirm = new Button("Potvrdit");
-		     confirm.setFont(Font.font("Verdana", 14));
-		     confirm.setMinWidth(100);
-		     confirm.setMinHeight(40);
+		Label errorArea = new Label();
+		errorArea.setFont(Font.font("Verdana", FontWeight.BOLD, 15));
+		errorArea.setTextFill(Color.web("#FF0000"));
+		errorArea.setWrapText(true);
 		     
-		     Label errorArea = new Label();
-		     errorArea.setFont(Font.font("Verdana", FontWeight.BOLD, 15));
-		     errorArea.setTextFill(Color.web("#FF0000"));
-		     errorArea.setWrapText(true);
+		HBox hBox = new HBox();
+		hBox.setSpacing(10);
+		hBox.getChildren().addAll(confirm, errorArea);
 		     
-		     box.getChildren().addAll(title, nameArea);
-		     HBox hBox = new HBox();
-		     hBox.setSpacing(10);
-		     hBox.getChildren().addAll(confirm, errorArea);
-		     box.getChildren().add(hBox);
+		vBox.getChildren().addAll(txtTitle, nameArea, hBox);
 		     
-		     Scene scene = new Scene(box, W_WIDTH, W_HEIGHT);
-		     stage.setScene(scene);
-		     stage.show();
+		Scene scene = new Scene(vBox, W_WIDTH, W_HEIGHT);
 		     
-		     confirm.setOnMousePressed(new EventHandler<MouseEvent>() {
-		            @Override
-		            public void handle(MouseEvent event) {
-		            	String error = handleBeginPress(nameArea.getText());
-	    	            nameArea.clear();
-	    	            errorArea.setText(error);
-		            }            
-		        });
+		stage.setScene(scene);
+		stage.show();
+		
+		confirm.setOnMousePressed(new EventHandler<MouseEvent>() {
+			@Override
+		    public void handle(MouseEvent event) {
+				String error = handleBeginPress(nameArea.getText());
+				nameArea.clear();
+	    	    errorArea.setText(error);
+			}            
+		});
 		     
-		     nameArea.addEventFilter(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
-		    	    @Override
-		    	    public void handle(KeyEvent key) {
-		    	        if (key.getCode().equals(KeyCode.ENTER)) {
-		    	            System.out.println("potvrdit");
-		    	            key.consume();
-		    	            String error = handleBeginPress(nameArea.getText());
-		    	            nameArea.clear();
-		    	            errorArea.setText(error);
-		    	        }
-		    	    }
-		    });
+		nameArea.addEventFilter(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent key) {
+				if (key.getCode().equals(KeyCode.ENTER)) {
+					key.consume();
+					String error = handleBeginPress(nameArea.getText());
+		    	    nameArea.clear();
+		    	    errorArea.setText(error);
+				}
+			}
+		});
 	}
 	
 	private Background getDefaultBackground() {
-		BackgroundFill myBF = new BackgroundFill(Color.BLUEVIOLET, new CornerRadii(1),
-				new Insets(0.0,0.0,0.0,0.0));// or null for the padding
-		//then you set to your node or container or layout
-		return new Background(myBF);
+		BackgroundFill defaultBackgroundFill = new BackgroundFill(Color.BLUEVIOLET, new CornerRadii(1),
+				new Insets(0.0,0.0,0.0,0.0));
+		
+		return new Background(defaultBackgroundFill);
 	}
 	
 	public String handleBeginPress(String name) {
@@ -358,7 +372,7 @@ public class Uvod extends Application {
 			alert.setTitle("Potenciánì nesprávné jméno!");
 			alert.setHeaderText("Jméno nebylo nalezeno. Opravdu se jedná o vaše hráèské jméno a chcete pokraèovat?");
 			alert.setContentText("Pøesvìdète se, že jste vaše hráèské jméno zadali správnì a že opravdu patøí vám!"
-					+ "Pokud budete i pøesto pokraèovat, bude informace o potenciálnì"
+					+ " Pokud budete i pøesto pokraèovat, bude informace o potenciálnì"
 					+ " nesprávném/cizím jménì odeslána a internì prošetøena.");
 			((Button) alert.getDialogPane().lookupButton(ButtonType.OK)).setText("I pøesto pokraèovat");
 			((Button) alert.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Zadat správné jméno");
@@ -366,19 +380,6 @@ public class Uvod extends Application {
 			if (alert.getResult() == ButtonType.CANCEL) {
 			    return "zadejte správné jméno";
 			}
-			System.out.println("ssdasdsad");
-		}
-
-		Podminka unfulfilledCondition = getUnfulfilledCondition();	
-		if (unfulfilledCondition != null) {
-			switch (getUnfulfilledCondition()) {
-				case SLOZKA_MINECRAFT: {
-					showUnfulfilledConditionScreen(Podminka.SLOZKA_MINECRAFT);
-				} break;
-				case PRIPOJENI_K_INTERNETU: {
-					showUnfulfilledConditionScreen(Podminka.PRIPOJENI_K_INTERNETU);
-				} break;
-			}	
 		}
 		startInspection(name, nameFoundInLogs);
 		return "";
@@ -411,80 +412,75 @@ public class Uvod extends Application {
 			return Podminka.SLOZKA_MINECRAFT;
 		}
 		
+		if (!Kontrola.SLOZKA_VERSIONS.exists()) {
+			return Podminka.SLOZKA_VERSIONS;
+		}
+		
 		return null;
 	}
 	
 	private void showUnfulfilledConditionScreen(Podminka podminka) {
-		try {
-			FileInputStream eInput = new FileInputStream("C:\\Users\\42073\\Desktop\\e2.png");
-			FileInputStream zInput = new FileInputStream("C:\\Users\\42073\\Desktop\\z2.png");
-			ImageView e = new ImageView(new Image(eInput));
-	        ImageView z = new ImageView(new Image(zInput));
+	        Text txtExit = new Text(10, 35, "Odejít");
+	        txtExit.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
 	        
-	        Text txt1 = new Text(10, 35, "Odejít");
-	        Text txt2 = new Text(10, 35, "Zkusit znovu");
-	        Text txt = new Text(10, 35, "Kontrola nemohla být spuštìna, protože");
+	        Text txtRetry = new Text(10, 35, "Zkusit znovu");
+	        txtRetry.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
+	        
+	        Text txtTitle = new Text(10, 35, "Kontrola nemohla být spuštìna, protože");
+	        txtTitle.setFont(Font.font("Verdana", 19));
+	        txtTitle.setTextAlignment(TextAlignment.CENTER);
+	        txtTitle.setWrappingWidth(W_WIDTH - 10);
 	        
 	        switch (podminka) {
-	        case PRIPOJENI_K_INTERNETU: {
-	        	txt.setText(txt.getText() + " chybý internetové pøipojení.");
-	        } break;
-	        case SLOZKA_MINECRAFT: {
-	        	txt.setText(txt.getText() + " nebyl nalezen Minecraft.");
-	        } break;
+	        	case PRIPOJENI_K_INTERNETU: {
+	        		txtTitle.setText(txtTitle.getText() + " chybý internetové pøipojení.");
+	        	} break;
+	        	case SLOZKA_MINECRAFT: {
+	        		txtTitle.setText(txtTitle.getText() + " nebyl nalezen Minecraft.");
+	        	} break;
+	        	case SLOZKA_VERSIONS: {
+	        		txtTitle.setText(txtTitle.getText() + " nebyla nalezena složka Versions.");
+	        	} break;
 	        }
-	        txt.setText(txt.getText() + " Chcete to zkusit znovu?");
-	        txt1.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-	        txt2.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-	        txt.setFont(Font.font("Verdana", 19));
-	        txt.setTextAlignment(TextAlignment.CENTER);
-	        txt.setWrappingWidth(W_WIDTH - 10);
+	        txtTitle.setText(txtTitle.getText() + " Chcete to zkusit znovu?");
 	        
-	        e.setX((W_WIDTH/2 - IMG_SIZE/2) + IMGS_OFFSET);
-	        e.setY(DEFAULT_IMG_Y);
-	        z.setX((W_WIDTH/2 - IMG_SIZE/2) - IMGS_OFFSET);
-	        z.setY(DEFAULT_IMG_Y);
+	        exit.setX((W_WIDTH/2 - IMG_SIZE/2) + IMGS_OFFSET);
+	        exit.setY(DEFAULT_IMG_Y);
+	        exit.setFitHeight(IMG_SIZE);
+	        exit.setFitWidth(IMG_SIZE);
 	        
-	        e.setFitHeight(IMG_SIZE);
-	        e.setFitWidth(IMG_SIZE);
-	        z.setFitHeight(IMG_SIZE);
-	        z.setFitWidth(IMG_SIZE);
+	        retry.setX((W_WIDTH/2 - IMG_SIZE/2) - IMGS_OFFSET);
+	        retry.setY(DEFAULT_IMG_Y);
+	        retry.setFitHeight(IMG_SIZE);
+	        retry.setFitWidth(IMG_SIZE);
 	        
-	        txt1.setX(e.getX() + 10);
-	        txt1.setY(e.getY() - 12);
-	        txt2.setX(z.getX() - 20);
-	        txt2.setY(z.getY() - 12);
+	        txtExit.setX(exit.getX() + 10);
+	        txtExit.setY(exit.getY() - 12);
+	        txtRetry.setX(retry.getX() - 20);
+	        txtRetry.setY(retry.getY() - 12);
 	        
 	        BorderPane pane = new BorderPane();
 	        pane.setBackground(getDefaultBackground());
-	        pane.getChildren().add(z);
-	        pane.getChildren().add(e);
-	        pane.getChildren().add(txt);
-	        pane.getChildren().add(txt1);
-	        pane.getChildren().add(txt2);
+	        pane.getChildren().addAll(retry, exit, txtTitle, txtExit, txtRetry);
 	        
 	        Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 	        stage.setScene(scene);
+	        stage.show();
 	        
-	        z.setOnMousePressed(new EventHandler<MouseEvent>() {
+	        retry.setOnMousePressed(new EventHandler<MouseEvent>() {
 	            @Override
 	            public void handle(MouseEvent event) {
-	            	System.out.println("retry");
 	            	pane.getChildren().clear();
-	            	showInputNameScreen();
+	            	begin();
 	            }            
 	        });
 	        
-	        e.setOnMousePressed(new EventHandler<MouseEvent>() {
+	        exit.setOnMousePressed(new EventHandler<MouseEvent>() {
 	            @Override
 	            public void handle(MouseEvent event) {
-	            	System.out.println("exit");
-	            	Platform.exit();
+	            	Kontrola.ukonci();
 	            }            
 	        });
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
  	}
 	
 	public void startInspection(String jmeno, boolean pravdepodobneNespravneJmeno) {
@@ -498,41 +494,33 @@ public class Uvod extends Application {
 	
 	public void showInspectionCompletedScreen(ArrayList<String> chyby) {
 	bringToFront();
-	try {
-		
-	FileInputStream eInput = new FileInputStream("C:\\Users\\42073\\Desktop\\e2.png");
-	ImageView e = new ImageView(new Image(eInput));
 	
-	Text txt = new Text(10, 35, chyby.size() > 0 ? "Kontrola byla dokonèena s chybama. Výsledky byly odeslány."
+	Text txtTitle = new Text(10, 35, chyby.size() > 0 ? "Kontrola byla dokonèena s chybami. Výsledky byly odeslány."
 			: "Kontrola byla dokonèena bez chyb a výsledky byly odeslány.");
 	
-     txt.setFont(Font.font("Verdana", 19));
-     txt.setTextAlignment(TextAlignment.CENTER);
-     txt.setWrappingWidth(W_WIDTH - 10);
+     txtTitle.setFont(Font.font("Verdana", 19));
+     txtTitle.setTextAlignment(TextAlignment.CENTER);
+     txtTitle.setWrappingWidth(W_WIDTH - 10);
      
-     e.setX((W_WIDTH/2 - IMG_SIZE/2));
-     e.setY(W_HEIGHT - IMG_SIZE - 30);
-     
-     e.setFitHeight(IMG_SIZE);
-     e.setFitWidth(IMG_SIZE);
+     exit.setX((W_WIDTH/2 - IMG_SIZE/2));
+     exit.setY(W_HEIGHT - IMG_SIZE - 30);
+     exit.setFitHeight(IMG_SIZE);
+     exit.setFitWidth(IMG_SIZE);
 	
 	 BorderPane pane = new BorderPane();
 	 pane.setBackground(getDefaultBackground());
-     pane.getChildren().add(e);
-     pane.getChildren().add(txt);
+     pane.getChildren().add(exit);
+     pane.getChildren().add(txtTitle);
      
      Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
      stage.setScene(scene);
      
-     e.setOnMousePressed(new EventHandler<MouseEvent>() {
+     exit.setOnMousePressed(new EventHandler<MouseEvent>() {
          @Override
          public void handle(MouseEvent event) {
-         	kontrola.ukonci();
+         	Kontrola.ukonci();
          }
      });
-	} catch (Exception e) {
-		e.printStackTrace();
-		}
 	}
 	
 	public void bringToFront() {
@@ -543,68 +531,45 @@ public class Uvod extends Application {
 	}
 	
 	private void showDisagreedScreen() {
-		try {
-			FileInputStream eInput = new FileInputStream("C:\\Users\\42073\\Desktop\\e2.png");
-			FileInputStream zInput = new FileInputStream("C:\\Users\\42073\\Desktop\\z2.png");
-			ImageView e = new ImageView(new Image(eInput));
-	        ImageView z = new ImageView(new Image(zInput));
+		Text txtTitle = new Text(10, 35, "Dobøe, žádná data nebudou odeslána.");
 	        
-	        Text txt1 = new Text(10, 35, "Odejít");
-	        Text txt2 = new Text(10, 35, "Zmìnit odpovìï");
-	        Text txt = new Text(10, 35, "Dobøe, žádná data nebudou odeslána.");
+	    txtTitle.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
+	    txtTitle.setFont(Font.font("Verdana", 19));
+	    txtTitle.setTextAlignment(TextAlignment.CENTER);
+	    txtTitle.setWrappingWidth(W_WIDTH - 10);
 	        
-	        txt1.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-	        txt2.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-	        txt.setFont(Font.font("Verdana", 19));
-	        txt.setTextAlignment(TextAlignment.CENTER);
-	        txt.setWrappingWidth(W_WIDTH - 10);
+	    exit.setX((W_WIDTH/2 - IMG_SIZE/2) + IMGS_OFFSET);
+	    exit.setY(DEFAULT_IMG_Y);
+	    retry.setX((W_WIDTH/2 - IMG_SIZE/2) - IMGS_OFFSET);
+	    retry.setY(DEFAULT_IMG_Y);
 	        
-	        e.setX((W_WIDTH/2 - IMG_SIZE/2) + IMGS_OFFSET);
-	        e.setY(DEFAULT_IMG_Y);
-	        z.setX((W_WIDTH/2 - IMG_SIZE/2) - IMGS_OFFSET);
-	        z.setY(DEFAULT_IMG_Y);
+	    exit.setFitHeight(IMG_SIZE);
+	    exit.setFitWidth(IMG_SIZE);
+	    retry.setFitHeight(IMG_SIZE);
+	    retry.setFitWidth(IMG_SIZE);
 	        
-	        e.setFitHeight(IMG_SIZE);
-	        e.setFitWidth(IMG_SIZE);
-	        z.setFitHeight(IMG_SIZE);
-	        z.setFitWidth(IMG_SIZE);
+	    BorderPane pane = new BorderPane();
+	    pane.setBackground(getDefaultBackground());
+	    pane.getChildren().addAll(retry, exit, txtTitle);
 	        
-	        txt1.setX(e.getX() + 10);
-	        txt1.setY(e.getY() - 12);
-	        txt2.setX(z.getX() - 20);
-	        txt2.setY(z.getY() - 12);
+	    Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 	        
-	        BorderPane pane = new BorderPane();
-	        pane.setBackground(getDefaultBackground());
-	        pane.getChildren().add(z);
-	        pane.getChildren().add(e);
-	        pane.getChildren().add(txt);
-	        pane.getChildren().add(txt1);
-	        pane.getChildren().add(txt2);
+	    stage.setScene(scene);
 	        
-	        Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
-	        stage.setScene(scene);
+	    retry.setOnMousePressed(new EventHandler<MouseEvent>() {
+	    	@Override
+	    	public void handle(MouseEvent event) {
+	    		pane.getChildren().clear();
+	    		showAgreementScreen();
+	    	}            
+	    });
 	        
-	        z.setOnMousePressed(new EventHandler<MouseEvent>() {
-	            @Override
-	            public void handle(MouseEvent event) {
-	            	System.out.println("retry");
-	            	pane.getChildren().clear();
-	            	showAgreementScreen();
-	            }            
-	        });
-	        
-	        e.setOnMousePressed(new EventHandler<MouseEvent>() {
-	            @Override
-	            public void handle(MouseEvent event) {
-	            	System.out.println("exit");
-	            	Platform.exit();
-	            }            
-	        });
-	        
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
+	    exit.setOnMousePressed(new EventHandler<MouseEvent>() {
+	    	@Override
+	    	public void handle(MouseEvent event) {
+	    		Kontrola.ukonci();
+	    	}           
+	    });
 	}
 	
 	public static boolean isInspectionRunning() {
