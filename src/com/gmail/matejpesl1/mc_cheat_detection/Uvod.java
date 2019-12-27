@@ -43,10 +43,10 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 
-public class Uvod extends Application {
+	public class Uvod extends Application {
 	public static enum Rezim {DEBUG, BASICLAND};
 	public static final Rezim rezim = Rezim.DEBUG;
-	public static final float VERZE_PROGRAMU = 2.6f;
+	public static final float VERZE_PROGRAMU = 2.7f;
 	
 	private static final int SPLASH_DURATION = 3000;
 	
@@ -73,7 +73,15 @@ public class Uvod extends Application {
 	private Server currentServer;
 	private Stage stage;
 	
+	private boolean splashShowed;
+	
 	public static void main(String[] args) {
+		Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+		    public void uncaughtException(Thread t, Throwable e) {
+		    	e.printStackTrace();
+		       Kontrola.prerusKontrolu("neošetøená vyjímka", true);
+		    }
+		 });
 		launch(args);
 	}
 	
@@ -81,28 +89,38 @@ public class Uvod extends Application {
 	public void start(Stage stage) {
 		this.stage = stage;
 		loadImages();
+		currentServer = determineServer(rezim);
 		prepareGUI();
-		begin();
+		loadProgram();
 	}
-	public void begin() {
+	public void loadProgram() {
+		
 		Podminka unfulfilledCondition = getUnfulfilledCondition();
-		if (unfulfilledCondition != null) {
-			showUnfulfilledConditionScreen(unfulfilledCondition);
-		} else {
+		if (unfulfilledCondition == null) {
 			kontrola = new Kontrola(this);
 			kontrola.start();
-
-			currentServer = determineServer(rezim);
+		}
+		
+		if (!splashShowed) {
 			if (rezim != Rezim.DEBUG) {
 				showSplashScreen(SPLASH_DURATION);	
 			} else {
 				showSplashScreen(500);
 			}
-			
-			showUpdateScreen();
-			
-			showAgreementScreen();	
+			splashShowed = true;
 		}
+		
+		if (unfulfilledCondition != null) {
+			showUnfulfilledConditionScreen(unfulfilledCondition);
+		} else {
+			startProgram();
+		}
+		
+	}
+	
+	public void startProgram() {
+		showUpdateScreen();
+		showAgreementScreen();	
 	}
 	
 	private void loadImages() {
@@ -241,7 +259,13 @@ public class Uvod extends Application {
 	
 	private void prepareGUI() {
 		stage.setResizable(false);
-		stage.setTitle("Cheat Detector");
+		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
+		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/128x128.png").toString()));
+		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/64x64.png").toString()));
+		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
+		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/32x32.png").toString()));
+		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/16x16.png").toString()));
+		stage.setTitle("Kontrola | " + currentServer.getIP());
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 	          public void handle(WindowEvent we) {
 	              System.out.println("Stage is closing");
@@ -406,7 +430,7 @@ public class Uvod extends Application {
 			} catch (Exception e) {
 				e.printStackTrace();
 				return Podminka.PRIPOJENI_K_INTERNETU;
-				}
+			}
 		
 		if (!Kontrola.SLOZKA_MINECRAFT.exists()) {
 			return Podminka.SLOZKA_MINECRAFT;
@@ -415,7 +439,7 @@ public class Uvod extends Application {
 		if (!Kontrola.SLOZKA_VERSIONS.exists()) {
 			return Podminka.SLOZKA_VERSIONS;
 		}
-		
+
 		return null;
 	}
 	
@@ -471,7 +495,7 @@ public class Uvod extends Application {
 	            @Override
 	            public void handle(MouseEvent event) {
 	            	pane.getChildren().clear();
-	            	begin();
+	            	loadProgram();
 	            }            
 	        });
 	        

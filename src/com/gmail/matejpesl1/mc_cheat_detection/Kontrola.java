@@ -78,13 +78,14 @@ public class Kontrola extends Thread {
 	private Uvod uvod;
 	
 	public Kontrola(Uvod uvod) {
-		this.uvod = uvod;
 		super.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 		    public void uncaughtException(Thread t, Throwable e) {
 		    	e.printStackTrace();
-		       prerusKontrolu("neošetøená vyjímka", true);
+		       Kontrola.prerusKontrolu("neošetøená vyjímka", true);
 		    }
 		 });
+		
+		this.uvod = uvod;
 		
 		DEFAULT_LOG_KEYWORDS = new ArrayList<>(Arrays.asList("hack", "fly", "antiknockback", "speed",
 				"tpaura", "tp-aura", "regen", "blink", "nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker"));
@@ -98,6 +99,7 @@ public class Kontrola extends Thread {
 			vytvorVlastniSlozku();
 		}
 		nactiKeywordy();
+		cestyKLogum.addAll(getPathsToLogs());
 		
 		String predesleKontrolyInfoStr = prevedObsahSouboruNaString(PREDESLE_KONTROLY_INFO_TXT.getPath());
 	
@@ -197,7 +199,7 @@ public class Kontrola extends Thread {
 					new HledaniSouboru((String)null, keywords)
 					.prohledejSoubory(SLOZKA_MINECRAFT, false, true, new ArrayList<String>(Collections.singletonList("assets")));
 			nalezeneJmenaHacku.addAll(nalezeneSoubory);	
-		}
+		}		
 		
 		vypisStavKontroly("9");
 		try {
@@ -216,26 +218,27 @@ public class Kontrola extends Thread {
 		vypisStavKontroly("10");
 		String nalezeneJmenaHackuStr = prevedArrayNaString(nalezeneJmenaHacku, ", ");
 		
-		String keywordsInLogs = "";
+		String logLinesContainingKeyword = null;
 		if (LOGS_FOLDER_EXISTS) {
 			for (String cestaKLogu : cestyKLogum) {
-				if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER), ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
+				if (ziskejRozdilMeziDaty(LocalDateTime.now().format(FORMATTER),
+						ziskejDatumPosledniUpravy(new File(cestaKLogu))) < 21600) {
 					if (new File(cestaKLogu).getName().contains("debug")) {
 						continue;
 					}
 					
-					String obsazeneKeywordyLogu = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords), " | ");
-					if (obsazeneKeywordyLogu != null) {
-						keywordsInLogs = keywordsInLogs + obsazeneKeywordyLogu;
+					String logLineWithKeyword = prevedArrayNaString(ziskejObsazeneKeywordyLogu(cestaKLogu, logKeywords, true), "\n");
+					if (logLineWithKeyword != null) {
+						logLinesContainingKeyword = (logLinesContainingKeyword == null ? "" : logLinesContainingKeyword) + logLineWithKeyword;
 					} 
 				}
 			}	
 		} else {
 			String error = "složka s logy nebyla nalezena";
-			keywordsInLogs = "nebyla nalezena složka s logy";
+			logLinesContainingKeyword = "nebyla nalezena složka s logy";
 			chyby.add(error);
 		}
-		
+
 		vypisStavKontroly("11");
 
 		boolean nestandardniJmena = false;
@@ -244,7 +247,6 @@ public class Kontrola extends Thread {
 			if (!nazevSlozky.matches(".*\\d.*")) {
 				nestandardniJmena = true;
 				nestandardniNazvySlozek.add(nazevSlozky);
-				System.out.println("matches " + nazevSlozky);
 			}
 		}
 		if (nestandardniJmena) {
@@ -282,8 +284,8 @@ public class Kontrola extends Thread {
 						"žádné pøedešlé kontroly neprobìhly" : ziskejSlovniRozdilMeziDaty(dobaOdPosledniKontroly, datumPosledniKontroly)) + "<br><br>"
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b>" + "<br>" + (nalezeneJmenaHacku.isEmpty() ?
 						"žádné" : nalezeneJmenaHackuStr) + "<br><br>"
-				+ "<b>nalezené klíèové slova v log souborech za posledních 15 dní, které se shodují se jménem hackù:</b>" + "<br>" + (keywordsInLogs == null ?
-						"žádné" : keywordsInLogs) + "<br><br>"
+				+ "<b>Øádky z logù za posledních 15 dní, ve kterých byly nalezeny klíèové slova:</b>" + "<br>" + (logLinesContainingKeyword == null ?
+						"žádné" : logLinesContainingKeyword) + "<br><br>"
 				+ "<b>názvy souborù ve složce versions v hloubce 1: </b>" + "<br>" + nazvySouboruVeVersions + "<br><br>"
 				+ "<b>Názvy všech \"jar\" souborù ve složce stažené: </b>" + "<br>" + nazvySouboruVeStazenych + "<br><br>"
 				+ "<b>Názvy všech \"jar\" souborù na ploše: </b>" + "<br>" + (nazvySouboruNaPlose == null ? "žádné" : nazvySouboruNaPlose) + "<br><br>"
@@ -549,11 +551,12 @@ public class Kontrola extends Thread {
 	    	Files.deleteIfExists(Paths.get(cestaKSouboru));
 	}
 	
-	private ArrayList<String> ziskejObsazeneKeywordyLogu(String log, ArrayList<String> keywords) {
+	private ArrayList<String> ziskejObsazeneKeywordyLogu(String log, ArrayList<String> keywords, boolean wholeLine) {
 		ArrayList<String> obsazeneKeywordy = new ArrayList<>();
 		if (!new File(log).exists()) {
 			return null;
 		}
+		
 		String logText = prevedObsahSouboruNaString(log);
 		
         String[] radky = logText.split("\\r?\\n");
@@ -561,13 +564,15 @@ public class Kontrola extends Thread {
             if (!radek.contains("[CHAT]")) {
             	for (String keyword : keywords) {
             		if (radek.contains(keyword)) {
-            			obsazeneKeywordy.add(keyword);
+            			obsazeneKeywordy.add(wholeLine ? radek : keyword);
             		}
             	}
             }
         }
         return obsazeneKeywordy;
 	}
+	
+	
 	
 	private String ziskejRadek(String text, int poradiRadku) {
         String[] radky = text.split("\\r?\\n");
@@ -664,7 +669,6 @@ public class Kontrola extends Thread {
 					(SLOZKA_LOGS, false, false, null)) {
 				if (!pathsToLogs.contains(cestaKLogu)) {
 					pathsToLogs.add(cestaKLogu);
-					System.out.println("added " + cestaKLogu + " to Array cestyKLogum");
 				}
 			}
 			return pathsToLogs;
@@ -672,10 +676,7 @@ public class Kontrola extends Thread {
 	
 	public boolean jeJmenoNalezeno(String jmeno) {
 		if (cestyKLogum.isEmpty()) {
-			cestyKLogum.addAll(getPathsToLogs());
-			if (cestyKLogum.isEmpty()) {
 				return false;
-			}
 		}
 		
 		String nameRegex = "\\b" + jmeno + "\\b";
@@ -704,7 +705,7 @@ public class Kontrola extends Thread {
 		return false;
 	}
 	
-	public void prerusKontrolu(String chyba, boolean ukazUzivateli) {
+	public static void prerusKontrolu(String chyba, boolean ukazUzivateli) {
 		System.err.println(chyba);
 		
 		Platform.runLater(new Runnable(){
@@ -712,8 +713,8 @@ public class Kontrola extends Thread {
 			public void run() {
 				Alert alert = new Alert(AlertType.ERROR);
 				alert.setTitle("Chyba");
-				alert.setHeaderText("Pøi kontrole došlo k chybì" + " (" + stav + ")"
-						+ ", která zabránila normální funkci programu. Žádná data nebudou odeslána.");
+				alert.setHeaderText("Došlo k chybì, která"
+						+ " zabránila normální funkci programu. Žádná data nebudou odeslána.");
 				if (ukazUzivateli) {
 					alert.setContentText(" Chyba: " + chyba);	
 				}				

@@ -61,7 +61,6 @@ public class Update {
 			*/
 		String thisProgramName = new File(System.getProperty("java.class.path")).getName();
 		thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
-		System.out.println("thisProgramPath: " + thisProgramPath);
 		return thisProgramPath;
 	}
 	

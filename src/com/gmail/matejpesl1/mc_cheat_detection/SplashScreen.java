@@ -13,7 +13,7 @@ public class SplashScreen extends JWindow implements Runnable {
     public SplashScreen(Color borderColor, String resourceName, int duration) {
     	this.duration = duration;
     	this.borderColor = borderColor;
-    	resourceURL = getInternalFile(resourceName);
+    	resourceURL = getLogo(resourceName);
     }
 
     public void showSplash() {  
@@ -28,7 +28,7 @@ public class SplashScreen extends JWindow implements Runnable {
         setBounds(x, y, width, height);
          
         JLabel logo = new JLabel(new ImageIcon(resourceURL));
-        JLabel copyright =  new JLabel("© 2019 Matìj Pešl, All rights reserved.", JLabel.CENTER);
+        JLabel copyright =  new JLabel("© 2019 Matìj Pešl<matejpesl1@gmail.com>, All rights reserved.", JLabel.CENTER);
         
         copyright.setFont(new Font("Sans-Serif", Font.ITALIC, 11));
         panel.add(copyright, BorderLayout.SOUTH);
@@ -53,7 +53,7 @@ public class SplashScreen extends JWindow implements Runnable {
     	dispose();
     }
     
-    public static URL getInternalFile(String resourceName) {
+    public static URL getLogo(String resourceName) {
         return SplashScreen.class.getResource("/resources/logos/" + resourceName);
     }
 
