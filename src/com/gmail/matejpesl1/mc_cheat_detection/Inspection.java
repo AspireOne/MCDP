@@ -56,13 +56,16 @@ public class Inspection extends Thread {
 	public static final File TXT_PREVIOUS_INSPECTIONS_INFO = new File(OWN_FOLDER.getPath() + "\\predesleKontrolyInfo.txt");
 	public static final File LATEST_ZIP = new File(OWN_FOLDER + "\\latest.zip");
 	
-	public static final String WORD_SEPARATOR = " | ";
-	public static final int MAIL_LATEST_LOG_LINES = 500;
+	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
+	public static final boolean LOGS_FOLDER_EXISTS = LOGS_FOLDER.exists();
+	public static final boolean DESKTOP_EXISTS = DESKTOP_FOLDER.exists();
+	public static final boolean DOWNLOADS_EXISTS = DOWNLOADS_FOLDER.exists();
+	public static final boolean ROAMING_EXISTS = ROAMING_FOLDER.exists();
 	
 	private boolean probablyWrongName;
 	private boolean probableHacker;
-	private List<String> foundHacksName = Collections.synchronizedList(new ArrayList<>());
-	private static ArrayList<String> pathsToLogs = new ArrayList<>();
+	private List<String> foundHacksName;
+	private ArrayList<String> pathsToLogs;
 	public ArrayList<String> errors;
 	private ArrayList<String> keywords;
 	private ArrayList<String> logKeywords;
@@ -71,17 +74,14 @@ public class Inspection extends Thread {
 	private String playerName;
 	private int hackerIndicatorsCounter;
 	private int totalInspectionsNumber;
-	String progress;
 	private Main main;
+	private String progress;
 	
-	private static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
-	private static final boolean LOGS_FOLDER_EXISTS = LOGS_FOLDER.exists();
-	private static final boolean DESKTOP_EXISTS = DESKTOP_FOLDER.exists();
-	private static final boolean DOWNLOADS_EXISTS = DOWNLOADS_FOLDER.exists();
-	private static final boolean ROAMING_EXISTS = ROAMING_FOLDER.exists();
-	private static final String initialInfo = 0 + "\n" + 0;
-	private static final int MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
-	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+	public static final String WORD_SEPARATOR = " | ";
+	public static final int MAIL_LATEST_LOG_LINES = 500;
+	public static final String initialInfo = 0 + "\n" + 0;
+	public static final int MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
+	public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	
 	public Inspection(Main main) {
 		super.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
@@ -93,6 +93,8 @@ public class Inspection extends Thread {
 		
 		this.main = main;
 		errors = new ArrayList<>();
+		foundHacksName = Collections.synchronizedList(new ArrayList<>());
+		pathsToLogs =  new ArrayList<>();
 		BACKUP_LOG_KEYWORDS = new ArrayList<>(Arrays.asList("hack", "fly", "antiknockback", "speed",
 				"tpaura", "tp-aura", "regen", "blink", "nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker"));
 		BACKUP_LOG_KEYWORDS.addAll(BACKUP_KEYWORDS);
@@ -113,7 +115,8 @@ public class Inspection extends Thread {
 		long timeSinceLastInspectionMins = 0;
 		if (!lastInspectionDate.equals("0")) {
 			try {
-				timeSinceLastInspectionMins = getDateDiff(LocalDateTime.now().format(FORMATTER), lastInspectionDate, TimeUnit.MINUTES);	
+				timeSinceLastInspectionMins =
+						getDateDiff(LocalDateTime.now().format(FORMATTER), lastInspectionDate, TimeUnit.MINUTES);	
 			} catch (DateTimeParseException e) {
 				e.printStackTrace();
 				writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
@@ -134,7 +137,8 @@ public class Inspection extends Thread {
 		}
 		
 		long lastVersionsModifInMins =
-				getDateDiff(LocalDateTime.now().format(FORMATTER), getLastModificationDate(VERSIONS_FOLDER), TimeUnit.MINUTES);	
+				getDateDiff(LocalDateTime.now().format(FORMATTER),
+						getLastModificationDate(VERSIONS_FOLDER), TimeUnit.MINUTES);	
 		
 		if (lastVersionsModifInMins < 30 && lastVersionsModifInMins >= 0) {
 			addHackerIndicator("Složka versions byla upravována pøed ménì než 30 minutami");
@@ -157,9 +161,12 @@ public class Inspection extends Thread {
 		
 		if (DOWNLOADS_EXISTS) {
 			namesOfJarFilesInDownloadsArr = new FileSearch
-					(new ArrayList<String>(Collections.singletonList("jar")), null).searchFiles(DOWNLOADS_FOLDER, false, true, null);
+					(new ArrayList<String>(Collections.singletonList("jar")), null)
+					.searchFiles(DOWNLOADS_FOLDER, false, true, null);
+			
 			namesOfExeFilesInDownloadsArr = new FileSearch
-					(new ArrayList<String>(Collections.singletonList("exe")), null).searchFiles(DOWNLOADS_FOLDER, false, true, null);	
+					(new ArrayList<String>(Collections.singletonList("exe")), null)
+					.searchFiles(DOWNLOADS_FOLDER, false, true, null);	
 		} else {
 			String error = "složka stažené nebyla nalezena/neexistuje.";
 			namesOfJarFilesInDownloadsArr.add(error);
@@ -168,7 +175,8 @@ public class Inspection extends Thread {
 		
 		if (DESKTOP_EXISTS) {
 			namesOfFilesOnDesktopArr = new FileSearch
-					(new ArrayList<String>(Collections.singletonList("jar")), null).searchFiles(DESKTOP_FOLDER, false, true, null);	
+					(new ArrayList<String>(Collections.singletonList("jar")), null)
+					.searchFiles(DESKTOP_FOLDER, false, true, null);	
 		} else {
 			String error = "Plocha nebyla nalezena.";
 			namesOfFilesOnDesktopArr.add(error);
@@ -211,7 +219,8 @@ public class Inspection extends Thread {
 		File folderToSearch = ROAMING_EXISTS ? ROAMING_FOLDER : MINECRAFT_FOLDER;
 		ArrayList<String> foundKeywords =
 				new FileSearch((String)null, keywords)
-					.searchFiles(folderToSearch, true, true, new ArrayList<String>(Collections.singletonList("assets")));
+				.searchFiles(folderToSearch, true, true,
+						new ArrayList<String>(Collections.singletonList("assets")));
 		foundHacksName.addAll(foundKeywords);	
 		
 		printInspectionProgress("9");
@@ -240,9 +249,14 @@ public class Inspection extends Thread {
 						continue;
 					}
 					
-					String logLineWithKeyword = convertArrayToString(getKeywordsContainedInLog(pathToLog, logKeywords, true), "\n");
+					String logLineWithKeyword =
+							convertArrayToString
+							(getKeywordsContainedInLog
+									(pathToLog, logKeywords, true), "\n");
 					if (logLineWithKeyword != null) {
-						logLinesContainingKeyword = (logLinesContainingKeyword == null ? "" : logLinesContainingKeyword) + logLineWithKeyword;
+						logLinesContainingKeyword =
+								(logLinesContainingKeyword == null ? "" :
+									logLinesContainingKeyword) + logLineWithKeyword;
 					} 
 				}
 			}	
@@ -271,6 +285,11 @@ public class Inspection extends Thread {
 		if (foundHacksName.size() > 0) {
 			probableHacker = true;
 			addHackerIndicator("Byly nalezeny soubory, které jsou pravdìpodobnì hacky.");
+		}
+		
+		if (logLinesContainingKeyword != null) {
+			probableHacker = true;
+			addHackerIndicator("Byla nalezena podezøelá klíèová slova v log souborech.");
 		}
 		
 		synchronized (this) {
@@ -306,10 +325,10 @@ public class Inspection extends Thread {
 				
 				+ "<b>Pøedešlá kontrola probìhla pøed: </b><br>"
 					+ (totalInspectionsNumber <= 1 ? "žádné pøedešlé kontroly neprobìhly" :
-					convertDateDiffToWords(timeSinceLastInspectionMins, lastInspectionDate)) + "<br><br>"
+					convertDateDiffToWords(timeSinceLastInspectionMins) + " (" + lastInspectionDate + ")") + "<br><br>"
 				
-				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>" +
-				(foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
+				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>"
+					+ (foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
 				
 				+ "<b>Øádky z logù za posledních 15 dní, ve kterých byly nalezeny klíèové slova:</b><br>"
 					+ (logLinesContainingKeyword == null ? "žádné" : logLinesContainingKeyword) + "<br><br>"
@@ -329,11 +348,12 @@ public class Inspection extends Thread {
 				+ "<b>Názvy souborù ve složce .minecraft ve hloubce 1: </b><br>"
 					+ foundKeywordsInMinecraft + "<br><br>"
 				
-				+ "<b>složka versions naposledy upravována pøed: </b><br>" +
-				convertDateDiffToWords(lastVersionsModifInMins, getLastModificationDate(VERSIONS_FOLDER)) + "<br><br>"
+				+ "<b>složka versions naposledy upravována pøed: </b><br>" 
+					+ convertDateDiffToWords(lastVersionsModifInMins)
+					+ " (" + getLastModificationDate(VERSIONS_FOLDER) + ")" + "<br><br>"
 				
 				+ "<b>Chyby pøi  kontrole: </b><br>"
-				+ (errors.isEmpty() ? "žádné" : errors);
+					+ (errors.isEmpty() ? "žádné" : errors);
 
 		
 		String latestLogContent = "latest log nebyl nazelen/neexistuje";
@@ -378,7 +398,8 @@ public class Inspection extends Thread {
 					content);
 		}
 		
-		updatePreviousInspectionsInfo(TXT_PREVIOUS_INSPECTIONS_INFO, totalInspectionsNumber, LocalDateTime.now().format(FORMATTER));
+		updatePreviousInspectionsInfo(TXT_PREVIOUS_INSPECTIONS_INFO, totalInspectionsNumber,
+				LocalDateTime.now().format(FORMATTER));
 		
 		printInspectionProgress("FINAL");
 		
@@ -444,7 +465,8 @@ public class Inspection extends Thread {
 		Thread thread = new Thread() {
 			@Override
 			public void run() {
-				ArrayList<String> foundFiles = new FileSearch((String)null, keywords).searchFiles(dir, true, true, subDirsToSkip);
+				ArrayList<String> foundFiles = new FileSearch((String)null, keywords)
+						.searchFiles(dir, true, true, subDirsToSkip);
 				foundHacksName.addAll(foundFiles);
 			}
 		};
@@ -576,7 +598,9 @@ public class Inspection extends Thread {
 	
 	private void addHackerIndicator(String reason) {
 		++hackerIndicatorsCounter;
-		hackerIndicators = (hackerIndicators == null ? hackerIndicatorsCounter + ". " : hackerIndicators + "\n" + hackerIndicatorsCounter + ". ") + reason;
+		hackerIndicators =
+				(hackerIndicators == null ? hackerIndicatorsCounter + ". " :
+					hackerIndicators + "\n" + hackerIndicatorsCounter + ". ") + reason;
 	}
 	
 	private String convertArrayToString(ArrayList<String> array, String separator) {
@@ -696,23 +720,23 @@ public class Inspection extends Thread {
 	    return data;
 	  }
 	
-	public String convertDateDiffToWords(long diff, String folderModifiedDate) {
+	public String convertDateDiffToWords(long diff) {
 		String napisDiff = "";
 		int oneDayInMins = 1440;
 		int oneHourInMins = 60;
 		if (diff < oneHourInMins) {
-			 napisDiff = diff + (diff == 1 ? " minutou. ": " minutami. ") + "(" + folderModifiedDate + ")";
+			 napisDiff = diff + (diff == 1 ? " minutou. ": " minutami.");
 		}
 		else if (diff >= oneHourInMins && diff < oneDayInMins) {
 			long rozdilVMinutach = diff/oneHourInMins;
 			napisDiff = rozdilVMinutach + (rozdilVMinutach == 1 ? " hodinou ": " hodinami ") + " a "
-				+ diff % oneHourInMins + (rozdilVMinutach == 1 ? " minutou. ": " minutami. ") + "(" + folderModifiedDate + ")";
+				+ diff % oneHourInMins + (rozdilVMinutach == 1 ? " minutou. ": " minutami.");
 		}
 		else if (diff >= oneDayInMins) {
 			long rozdilVeDnech = diff/oneHourInMins/24;
 			long zbyleHodiny = (diff/oneHourInMins) % 24;
 			napisDiff = rozdilVeDnech + (rozdilVeDnech == 1 ? " dnem " : " dny ")
-				+ " a " + zbyleHodiny + (zbyleHodiny == 1 ? " hodinou. " : " hodinami. ") + "(" + folderModifiedDate + ")";
+				+ " a " + zbyleHodiny + (zbyleHodiny == 1 ? " hodinou. " : " hodinami.");
 		}
 		return napisDiff;
 	}
