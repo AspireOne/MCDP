@@ -8,7 +8,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-import com.gmail.matejpesl1.mc_cheat_detection.Kontrola;
+import com.gmail.matejpesl1.mc_cheat_detection.Inspection;
 import com.gmail.matejpesl1.servers.Basicland;
 import com.gmail.matejpesl1.servers.Debug;
 import com.gmail.matejpesl1.servers.Server;
@@ -43,10 +43,10 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 
-	public class Uvod extends Application {
+	public class Main extends Application {
 	public static enum Rezim {DEBUG, BASICLAND};
-	public static final Rezim rezim = Rezim.DEBUG;
-	public static final float VERZE_PROGRAMU = 2.7f;
+	public static final Rezim mode = Rezim.DEBUG;
+	public static final float PROGRAM_VERSION = 2.9f;
 	
 	private static final int SPLASH_DURATION = 3000;
 	
@@ -63,25 +63,29 @@ import javafx.scene.text.TextAlignment;
 	public static ImageView programLogo;
 	public static ImageView retry;
 	
-	public static final Pattern NEPOVOLENE_ZNAKY_VE_JMENE = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
-	public static final int MAX_DELKA_JMENA = 16;
-	public static final int MIN_DELKA_JMENA = 3;
+	public static final Pattern UNALLOWED_NAME_CHARACTERS = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
+	public static final int MAX_NAME_LENGTH = 16;
+	public static final int MIN_NAME_LENGTH = 3;
 	
 	private static boolean inspectionRunning = false;
-	public static enum Podminka{PRIPOJENI_K_INTERNETU, SLOZKA_MINECRAFT, SLOZKA_VERSIONS};
-	private Kontrola kontrola;
+	public static enum Podminka{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
+	private Inspection inspection;
 	private Server currentServer;
 	private Stage stage;
 	
-	private boolean splashShowed;
+	private boolean splashWasSplashed;
 	
 	public static void main(String[] args) {
-		Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-		    public void uncaughtException(Thread t, Throwable e) {
-		    	e.printStackTrace();
-		       Kontrola.prerusKontrolu("neošetøená vyjímka", true);
-		    }
-		 });
+		try {
+			Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+			    public void uncaughtException(Thread t, Throwable e) {
+			    	e.printStackTrace();
+			       Inspection.interruptInspection("neošetøená vyjímka", true);
+			    }
+			 });	
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		launch(args);
 	}
 	
@@ -89,25 +93,24 @@ import javafx.scene.text.TextAlignment;
 	public void start(Stage stage) {
 		this.stage = stage;
 		loadImages();
-		currentServer = determineServer(rezim);
+		currentServer = determineServer(mode);
 		prepareGUI();
 		loadProgram();
 	}
 	public void loadProgram() {
-		
 		Podminka unfulfilledCondition = getUnfulfilledCondition();
 		if (unfulfilledCondition == null) {
-			kontrola = new Kontrola(this);
-			kontrola.start();
+			inspection = new Inspection(this);
+			inspection.start();
 		}
 		
-		if (!splashShowed) {
-			if (rezim != Rezim.DEBUG) {
+		if (!splashWasSplashed) {
+			if (mode != Rezim.DEBUG) {
 				showSplashScreen(SPLASH_DURATION);	
 			} else {
 				showSplashScreen(500);
 			}
-			splashShowed = true;
+			splashWasSplashed = true;
 		}
 		
 		if (unfulfilledCondition != null) {
@@ -115,7 +118,6 @@ import javafx.scene.text.TextAlignment;
 		} else {
 			startProgram();
 		}
-		
 	}
 	
 	public void startProgram() {
@@ -132,7 +134,7 @@ import javafx.scene.text.TextAlignment;
 	}
 
 	 public static URL getInternalFile(String path) {
-		 return Uvod.class.getResource(path);
+		 return Main.class.getResource(path);
 	 }
 	
 	private void showSplashScreen(int duration) {
@@ -142,7 +144,7 @@ import javafx.scene.text.TextAlignment;
 			splash.run();
 		} catch(Exception e) {
 			e.printStackTrace();
-			kontrola.chyby.add("Nepodaøilo se spustit uvítací obrazovku (splash screen).");
+			inspection.errors.add("Nepodaøilo se spustit uvítací obrazovku (splash screen).");
 		}
 	}
 	
@@ -245,7 +247,7 @@ import javafx.scene.text.TextAlignment;
 	
 	private void showErrorInUpdateProcess(String error, Exception e) {
 		e.printStackTrace();
-		kontrola.chyby.add(error);
+		inspection.errors.add(error);
 		showErrorAlert(error);
 		showAgreementScreen();
 	}
@@ -265,11 +267,11 @@ import javafx.scene.text.TextAlignment;
 		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
 		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/32x32.png").toString()));
 		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/16x16.png").toString()));
-		stage.setTitle("Kontrola | " + currentServer.getIP());
+		stage.setTitle("Kontrola | " + currentServer.getIP() + "                                                                v" + PROGRAM_VERSION);
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 	          public void handle(WindowEvent we) {
 	              System.out.println("Stage is closing");
-	              Kontrola.ukonci();
+	              Inspection.endProgram();
 	          }
 	      });
 		stage.centerOnScreen();
@@ -385,13 +387,13 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	public String handleBeginPress(String name) {
-		boolean nameFoundInLogs = true;
+		boolean nameNotFoundInLogs = false;
 		if (!isNameFormatCorrect(name)) {
 			return "Formát jména není správný.";
 		}
 		
 		if (!isNameInLogs(name)) {
-			nameFoundInLogs = false;
+			nameNotFoundInLogs = true;
 			Alert alert = new Alert(AlertType.CONFIRMATION);
 			alert.setTitle("Potenciánì nesprávné jméno!");
 			alert.setHeaderText("Jméno nebylo nalezeno. Opravdu se jedná o vaše hráèské jméno a chcete pokraèovat?");
@@ -405,17 +407,17 @@ import javafx.scene.text.TextAlignment;
 			    return "zadejte správné jméno";
 			}
 		}
-		startInspection(name, nameFoundInLogs);
+		startInspection(name, nameNotFoundInLogs);
 		return "";
 	}
 	
 	public boolean isNameInLogs(String name) {
-		return new Kontrola(null).jeJmenoNalezeno(name);
+		return new Inspection(null).isNameFound(name);
 	}
 	
 	public boolean isNameFormatCorrect(String name) {
-		return (name.length() >= MIN_DELKA_JMENA && name.length() <= MAX_DELKA_JMENA &&
-				!NEPOVOLENE_ZNAKY_VE_JMENE.matcher(name).find() &&
+		return (name.length() >= MIN_NAME_LENGTH && name.length() <= MAX_NAME_LENGTH &&
+				!UNALLOWED_NAME_CHARACTERS.matcher(name).find() &&
 				Normalizer.isNormalized(name, Normalizer.Form.NFD));
 	}
 	
@@ -429,40 +431,34 @@ import javafx.scene.text.TextAlignment;
 			connection1.getInputStream().close();
 			} catch (Exception e) {
 				e.printStackTrace();
-				return Podminka.PRIPOJENI_K_INTERNETU;
+				return Podminka.INTERNET;
 			}
 		
-		if (!Kontrola.SLOZKA_MINECRAFT.exists()) {
-			return Podminka.SLOZKA_MINECRAFT;
+		if (!Inspection.MINECRAFT_FOLDER.exists()) {
+			return Podminka.MINECRAFT_DIR;
 		}
 		
-		if (!Kontrola.SLOZKA_VERSIONS.exists()) {
-			return Podminka.SLOZKA_VERSIONS;
+		if (!Inspection.VERSIONS_FOLDER.exists()) {
+			return Podminka.VERSIONS_DIR;
 		}
 
 		return null;
 	}
 	
 	private void showUnfulfilledConditionScreen(Podminka podminka) {
-	        Text txtExit = new Text(10, 35, "Odejít");
-	        txtExit.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-	        
-	        Text txtRetry = new Text(10, 35, "Zkusit znovu");
-	        txtRetry.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-	        
 	        Text txtTitle = new Text(10, 35, "Kontrola nemohla být spuštìna, protože");
 	        txtTitle.setFont(Font.font("Verdana", 19));
 	        txtTitle.setTextAlignment(TextAlignment.CENTER);
 	        txtTitle.setWrappingWidth(W_WIDTH - 10);
 	        
 	        switch (podminka) {
-	        	case PRIPOJENI_K_INTERNETU: {
+	        	case INTERNET: {
 	        		txtTitle.setText(txtTitle.getText() + " chybý internetové pøipojení.");
 	        	} break;
-	        	case SLOZKA_MINECRAFT: {
+	        	case MINECRAFT_DIR: {
 	        		txtTitle.setText(txtTitle.getText() + " nebyl nalezen Minecraft.");
 	        	} break;
-	        	case SLOZKA_VERSIONS: {
+	        	case VERSIONS_DIR: {
 	        		txtTitle.setText(txtTitle.getText() + " nebyla nalezena složka Versions.");
 	        	} break;
 	        }
@@ -478,14 +474,9 @@ import javafx.scene.text.TextAlignment;
 	        retry.setFitHeight(IMG_SIZE);
 	        retry.setFitWidth(IMG_SIZE);
 	        
-	        txtExit.setX(exit.getX() + 10);
-	        txtExit.setY(exit.getY() - 12);
-	        txtRetry.setX(retry.getX() - 20);
-	        txtRetry.setY(retry.getY() - 12);
-	        
 	        BorderPane pane = new BorderPane();
 	        pane.setBackground(getDefaultBackground());
-	        pane.getChildren().addAll(retry, exit, txtTitle, txtExit, txtRetry);
+	        pane.getChildren().addAll(retry, exit, txtTitle);
 	        
 	        Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 	        stage.setScene(scene);
@@ -502,16 +493,16 @@ import javafx.scene.text.TextAlignment;
 	        exit.setOnMousePressed(new EventHandler<MouseEvent>() {
 	            @Override
 	            public void handle(MouseEvent event) {
-	            	Kontrola.ukonci();
+	            	Inspection.endProgram();
 	            }            
 	        });
  	}
 	
 	public void startInspection(String jmeno, boolean pravdepodobneNespravneJmeno) {
 		inspectionRunning = true;
-		kontrola.dodejUdaje(jmeno, pravdepodobneNespravneJmeno);
-		synchronized (kontrola)  {
-			kontrola.notify();   
+		inspection.supplyData(jmeno, pravdepodobneNespravneJmeno);
+		synchronized (inspection)  {
+			inspection.notify();   
 		}
 		showInspectionRunningScreen("Probíhá kontrola...");
 	}
@@ -542,7 +533,7 @@ import javafx.scene.text.TextAlignment;
      exit.setOnMousePressed(new EventHandler<MouseEvent>() {
          @Override
          public void handle(MouseEvent event) {
-         	Kontrola.ukonci();
+         	Inspection.endProgram();
          }
      });
 	}
@@ -591,7 +582,7 @@ import javafx.scene.text.TextAlignment;
 	    exit.setOnMousePressed(new EventHandler<MouseEvent>() {
 	    	@Override
 	    	public void handle(MouseEvent event) {
-	    		Kontrola.ukonci();
+	    		Inspection.endProgram();
 	    	}           
 	    });
 	}

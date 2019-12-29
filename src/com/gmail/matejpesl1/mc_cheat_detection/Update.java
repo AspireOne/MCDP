@@ -15,23 +15,23 @@ public class Update {
 	private String thisProgramPath;
 	public final float newestVerNum;
 	private boolean downloaded;
-	public static final File newestVerNumFile = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\newestVerNum.txt");
-	public static final File update = new File(Kontrola.VLASTNI_SLOZKA_CESTA + "\\update.jar");
-	private Uvod uvod;
+	public static final File newestVerNumFile = new File(Inspection.OWN_FOLDER.getPath() + "\\newestVerNum.txt");
+	public static final File update = new File(Inspection.OWN_FOLDER.getPath() + "\\update.jar");
+	private Main uvod;
 	
-	public Update(Uvod uvod) throws URISyntaxException, IOException {
+	public Update(Main uvod) throws URISyntaxException, IOException {
 		this.uvod = uvod;
 		 loadUrls();
 		 thisProgramPath = getThisProgramPath();
 		 newestVerNum = getNewestVerNum();
-		 if (!Kontrola.VLASTNI_SLOZKA.exists()) {
-			 new Kontrola(null).vytvorVlastniSlozku();
+		 if (!Inspection.OWN_FOLDER.exists()) {
+			 new Inspection(null).createOwnDir();
 		 }
 	}
 	
 	private float getNewestVerNum() throws IOException {
 		download(newestVerNumUrl, newestVerNumFile.getPath());
-		float newestVerNum = Float.parseFloat(new Kontrola(null).prevedObsahSouboruNaString(newestVerNumFile.getPath()));
+		float newestVerNum = Float.parseFloat(new Inspection(null).convertLogContentToString(newestVerNumFile.getPath()));
 		newestVerNumFile.delete();
 		return newestVerNum;
 	}
@@ -65,7 +65,7 @@ public class Update {
 	}
 	
 	public boolean isUpdateAvailable() {
-		if (Uvod.VERZE_PROGRAMU < newestVerNum) {
+		if (Main.PROGRAM_VERSION < newestVerNum) {
 			return true;
 		} else {
 			return false;
