@@ -392,7 +392,7 @@ import javafx.scene.text.TextAlignment;
 			return "Formát jména není správný.";
 		}
 		
-		if (!isNameInLogs(name)) {
+		if (!inspection.isNameInLogs(name)) {
 			nameNotFoundInLogs = true;
 			Alert alert = new Alert(AlertType.CONFIRMATION);
 			alert.setTitle("Potenciánì nesprávné jméno!");
@@ -409,10 +409,6 @@ import javafx.scene.text.TextAlignment;
 		}
 		startInspection(name, nameNotFoundInLogs);
 		return "";
-	}
-	
-	public boolean isNameInLogs(String name) {
-		return new Inspection(null).isNameFound(name);
 	}
 	
 	public boolean isNameFormatCorrect(String name) {
@@ -434,11 +430,11 @@ import javafx.scene.text.TextAlignment;
 				return Podminka.INTERNET;
 			}
 		
-		if (!Inspection.MINECRAFT_FOLDER.exists()) {
+		if (!Inspection.MINECRAFT_DIR.exists()) {
 			return Podminka.MINECRAFT_DIR;
 		}
 		
-		if (!Inspection.VERSIONS_FOLDER.exists()) {
+		if (!Inspection.VERSIONS_DIR.exists()) {
 			return Podminka.VERSIONS_DIR;
 		}
 

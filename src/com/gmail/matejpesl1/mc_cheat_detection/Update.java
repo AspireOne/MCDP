@@ -15,8 +15,8 @@ public class Update {
 	private String thisProgramPath;
 	public final float newestVerNum;
 	private boolean downloaded;
-	public static final File newestVerNumFile = new File(Inspection.OWN_FOLDER.getPath() + "\\newestVerNum.txt");
-	public static final File update = new File(Inspection.OWN_FOLDER.getPath() + "\\update.jar");
+	public static final File newestVerNumFile = new File(Inspection.OWN_DIR.getPath() + "\\newestVerNum.txt");
+	public static final File update = new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
 	private Main uvod;
 	
 	public Update(Main uvod) throws URISyntaxException, IOException {
@@ -24,7 +24,7 @@ public class Update {
 		 loadUrls();
 		 thisProgramPath = getThisProgramPath();
 		 newestVerNum = getNewestVerNum();
-		 if (!Inspection.OWN_FOLDER.exists()) {
+		 if (!Inspection.OWN_DIR.exists()) {
 			 new Inspection(null).createOwnDir();
 		 }
 	}

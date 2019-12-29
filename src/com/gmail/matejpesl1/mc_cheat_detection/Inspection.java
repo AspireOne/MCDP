@@ -37,36 +37,36 @@ import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.util.Zip4jConstants;
 
 public class Inspection extends Thread {
+	private final ArrayList<String> BACKUP_LOG_KEYWORDS;
+	public static final String URL_TO_KEYWORDS_STR = "https://drive.google.com/uc?export=download&id=1h1RyP_m1j29jRES-TWj55Vg47BbppSoF";
 	private static final ArrayList<String> BACKUP_KEYWORDS = new ArrayList<>(Arrays.asList("huzuni", "skillclient", "liquidbounce",
 			"wolfram", "impact_", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked", "hackclient", "hacked-client",
 			"hack-client", "pandora", "killaura", "kill-aura", "forgehax", "impact_", "impact-", "_impact", "-impact"));
-	public static final String URL_TO_KEYWORDS_STR = "https://drive.google.com/uc?export=download&id=1h1RyP_m1j29jRES-TWj55Vg47BbppSoF";
-	private final ArrayList<String> BACKUP_LOG_KEYWORDS;
 	
 	public static final String PATH_ROOT = System.getProperty("user.home");
-	public static final File ROOT_FOLDER = new File(PATH_ROOT);
-	public static final File LOGS_FOLDER = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\logs");
-	public static final File ROAMING_FOLDER = new File(PATH_ROOT + "\\AppData\\Roaming");
-	public static final File DESKTOP_FOLDER = new File(PATH_ROOT + "\\Desktop");
-	public static final File VERSIONS_FOLDER = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\versions");
-	public static final File MINECRAFT_FOLDER = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft");
-	public static final File DOWNLOADS_FOLDER = new File(Paths.get(PATH_ROOT, "Downloads").toString());
-	public static final File OWN_FOLDER = new File(PATH_ROOT + "\\vysledky");
-	public static final File LATEST_LOG = new File(LOGS_FOLDER.getPath() + "\\latest.log");
-	public static final File TXT_PREVIOUS_INSPECTIONS_INFO = new File(OWN_FOLDER.getPath() + "\\predesleKontrolyInfo.txt");
-	public static final File LATEST_ZIP = new File(OWN_FOLDER + "\\latest.zip");
+	public static final File ROOT_DIR = new File(PATH_ROOT);
+	public static final File LOGS_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\logs");
+	public static final File ROAMING_DIR = new File(PATH_ROOT + "\\AppData\\Roaming");
+	public static final File DESKTOP_DIR = new File(PATH_ROOT + "\\Desktop");
+	public static final File VERSIONS_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\versions");
+	public static final File MINECRAFT_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft");
+	public static final File DOWNLOADS_DIR = new File(Paths.get(PATH_ROOT, "Downloads").toString());
+	public static final File OWN_DIR = new File(PATH_ROOT + "\\vysledky");
+	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
+	public static final File TXT_PREVIOUS_INSPECTIONS_INFO = new File(OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
+	public static final File LATEST_ZIP = new File(OWN_DIR + "\\latest.zip");
 	
 	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
-	public static final boolean LOGS_FOLDER_EXISTS = LOGS_FOLDER.exists();
-	public static final boolean DESKTOP_EXISTS = DESKTOP_FOLDER.exists();
-	public static final boolean DOWNLOADS_EXISTS = DOWNLOADS_FOLDER.exists();
-	public static final boolean ROAMING_EXISTS = ROAMING_FOLDER.exists();
+	public static final boolean LOGS_DIR_EXISTS = LOGS_DIR.exists();
+	public static final boolean DESKTOP_DIR_EXISTS = DESKTOP_DIR.exists();
+	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
+	public static final boolean ROAMING_DIR_EXISTS = ROAMING_DIR.exists();
 	
+	public ArrayList<String> errors;
 	private boolean probablyWrongName;
 	private boolean probableHacker;
 	private List<String> foundHacksName;
-	private ArrayList<String> pathsToLogs;
-	public ArrayList<String> errors;
+	private final ArrayList<String> pathsToLogs;
 	private ArrayList<String> keywords;
 	private ArrayList<String> logKeywords;
 	private String lastInspectionDate;
@@ -74,12 +74,12 @@ public class Inspection extends Thread {
 	private String playerName;
 	private int hackerIndicatorsCounter;
 	private int totalInspectionsNumber;
-	private Main main;
 	private String progress;
+	private Main main;
 	
 	public static final String WORD_SEPARATOR = " | ";
-	public static final int MAIL_LATEST_LOG_LINES = 500;
 	public static final String initialInfo = 0 + "\n" + 0;
+	public static final int MAIL_LATEST_LOG_LINES = 500;
 	public static final int MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
 	public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	
@@ -94,7 +94,7 @@ public class Inspection extends Thread {
 		this.main = main;
 		errors = new ArrayList<>();
 		foundHacksName = Collections.synchronizedList(new ArrayList<>());
-		pathsToLogs =  new ArrayList<>();
+		pathsToLogs = getPathsToLogs();
 		BACKUP_LOG_KEYWORDS = new ArrayList<>(Arrays.asList("hack", "fly", "antiknockback", "speed",
 				"tpaura", "tp-aura", "regen", "blink", "nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker"));
 		BACKUP_LOG_KEYWORDS.addAll(BACKUP_KEYWORDS);
@@ -103,7 +103,7 @@ public class Inspection extends Thread {
 	public void doInspection() {
 		LATEST_ZIP.deleteOnExit();
 		printInspectionProgress("1");
-		if (!OWN_FOLDER.exists()) {
+		if (!OWN_DIR.exists()) {
 			createOwnDir();
 		}
 		loadKezwords();
@@ -138,7 +138,7 @@ public class Inspection extends Thread {
 		
 		long lastVersionsModifInMins =
 				getDateDiff(LocalDateTime.now().format(FORMATTER),
-						getLastModificationDate(VERSIONS_FOLDER), TimeUnit.MINUTES);	
+						getLastModificationDate(VERSIONS_DIR), TimeUnit.MINUTES);
 		
 		if (lastVersionsModifInMins < 30 && lastVersionsModifInMins >= 0) {
 			addHackerIndicator("Složka versions byla upravována pøed ménì než 30 minutami");
@@ -152,31 +152,31 @@ public class Inspection extends Thread {
 		ArrayList<String> namesOfExeFilesInDownloadsArr = new ArrayList<>();
 		
 		namesOfFilesInVersionsArr = new FileSearch
-				((String)null, null).searchFiles(VERSIONS_FOLDER, false, true, null);
+				((String)null, null).searchFiles(VERSIONS_DIR, false, true, null);
 		
 		namesOfFilesInMinecraftArr = new FileSearch
-				((String)null, null).searchFiles(MINECRAFT_FOLDER, false, true, null);
+				((String)null, null).searchFiles(MINECRAFT_DIR, false, true, null);
 		
 		printInspectionProgress("4");
 		
-		if (DOWNLOADS_EXISTS) {
+		if (DOWNLOADS_DIR_EXISTS) {
 			namesOfJarFilesInDownloadsArr = new FileSearch
 					(new ArrayList<String>(Collections.singletonList("jar")), null)
-					.searchFiles(DOWNLOADS_FOLDER, false, true, null);
+					.searchFiles(DOWNLOADS_DIR, false, true, null);
 			
 			namesOfExeFilesInDownloadsArr = new FileSearch
 					(new ArrayList<String>(Collections.singletonList("exe")), null)
-					.searchFiles(DOWNLOADS_FOLDER, false, true, null);	
+					.searchFiles(DOWNLOADS_DIR, false, true, null);	
 		} else {
 			String error = "složka stažené nebyla nalezena/neexistuje.";
 			namesOfJarFilesInDownloadsArr.add(error);
 			errors.add(error);
 		}
 		
-		if (DESKTOP_EXISTS) {
+		if (DESKTOP_DIR_EXISTS) {
 			namesOfFilesOnDesktopArr = new FileSearch
 					(new ArrayList<String>(Collections.singletonList("jar")), null)
-					.searchFiles(DESKTOP_FOLDER, false, true, null);	
+					.searchFiles(DESKTOP_DIR, false, true, null);	
 		} else {
 			String error = "Plocha nebyla nalezena.";
 			namesOfFilesOnDesktopArr.add(error);
@@ -206,20 +206,20 @@ public class Inspection extends Thread {
 		
 		
 		//now find keywords
-		Thread tDownloads = findKeywordsInDir(DOWNLOADS_FOLDER, keywords, null);
-		Thread tDesktop = findKeywordsInDir(DESKTOP_FOLDER, keywords, null);
+		Thread tDownloads = findKeywordsInDir(DOWNLOADS_DIR, keywords, null);
+		Thread tDesktop = findKeywordsInDir(DESKTOP_DIR, keywords, null);
 		printInspectionProgress("8");
-		if (DOWNLOADS_EXISTS) {
+		if (DOWNLOADS_DIR_EXISTS) {
 			tDownloads.start();	
 		}
-		if (DESKTOP_EXISTS) {
+		if (DESKTOP_DIR_EXISTS) {
 			tDesktop.start();	
 		}
 		
-		File folderToSearch = ROAMING_EXISTS ? ROAMING_FOLDER : MINECRAFT_FOLDER;
+		File dirToSearch = ROAMING_DIR_EXISTS ? ROAMING_DIR : MINECRAFT_DIR;
 		ArrayList<String> foundKeywords =
 				new FileSearch((String)null, keywords)
-				.searchFiles(folderToSearch, true, true,
+				.searchFiles(dirToSearch, true, true,
 						new ArrayList<String>(Collections.singletonList("assets")));
 		foundHacksName.addAll(foundKeywords);	
 		
@@ -241,7 +241,7 @@ public class Inspection extends Thread {
 		String foundHackKeywordsStr = convertArrayToString(foundHacksName, " | ");
 		
 		String logLinesContainingKeyword = null;
-		if (LOGS_FOLDER_EXISTS) {
+		if (LOGS_DIR_EXISTS) {
 			for (String pathToLog : pathsToLogs) {
 				if (getDateDiff(LocalDateTime.now().format(FORMATTER),
 						getLastModificationDate(new File(pathToLog)), TimeUnit.DAYS) < MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
@@ -330,7 +330,7 @@ public class Inspection extends Thread {
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>"
 					+ (foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
 				
-				+ "<b>Øádky z logù za posledních 15 dní, ve kterých byly nalezeny klíèové slova:</b><br>"
+				+ "<b>Øádky z logù za posledních " + MAX_AGE_OF_LOGS_TO_INSPECT_DAYS + " dní, ve kterých byly nalezeny klíèové slova:</b><br>"
 					+ (logLinesContainingKeyword == null ? "žádné" : logLinesContainingKeyword) + "<br><br>"
 				
 				+ "<b>názvy souborù ve složce versions v hloubce 1: </b><br>"
@@ -350,7 +350,7 @@ public class Inspection extends Thread {
 				
 				+ "<b>složka versions naposledy upravována pøed: </b><br>" 
 					+ convertDateDiffToWords(lastVersionsModifInMins)
-					+ " (" + getLastModificationDate(VERSIONS_FOLDER) + ")" + "<br><br>"
+					+ " (" + getLastModificationDate(VERSIONS_DIR) + ")" + "<br><br>"
 				
 				+ "<b>Chyby pøi  kontrole: </b><br>"
 					+ (errors.isEmpty() ? "žádné" : errors);
@@ -412,13 +412,13 @@ public class Inspection extends Thread {
 	}
 	
 	public void createOwnDir() {
-		boolean dirCreated = OWN_FOLDER.mkdir();
+		boolean dirCreated = OWN_DIR.mkdir();
 		if (!dirCreated) {
 			interruptInspection("Nastala chyba pøi vytváøení složky", false);
 		}
 		
 		writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
-		changeFileAttribute(OWN_FOLDER, "dos:hidden", true);
+		changeFileAttribute(OWN_DIR, "dos:hidden", true);
 		changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);
 	}
 	
@@ -474,7 +474,7 @@ public class Inspection extends Thread {
 	}
 	
 	private void loadKezwords() {
-		File fileWithKeywords = new File(OWN_FOLDER.getPath() + "\\keywords.txt");
+		File fileWithKeywords = new File(OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
 		ArrayList<String> logKeywords = new ArrayList<>();
 		
@@ -699,7 +699,7 @@ public class Inspection extends Thread {
 	    try {
 	    	if (pathToFile.endsWith(".gz")) {
 	    		compressed = true;
-	    		String pathToDecompressedFile = OWN_FOLDER.getPath() + "\\temp_decompressed_file" + ".log"; 
+	    		String pathToDecompressedFile = OWN_DIR.getPath() + "\\temp_decompressed_file" + ".log"; 
 	    		decompressGZip(pathToDecompressedFile, new File(pathToFile));
 	    		pathToFile = pathToDecompressedFile;
 	    	}
@@ -721,43 +721,40 @@ public class Inspection extends Thread {
 	  }
 	
 	public String convertDateDiffToWords(long diff) {
-		String napisDiff = "";
+		String diffByWords = "";
 		int oneDayInMins = 1440;
-		int oneHourInMins = 60;
-		if (diff < oneHourInMins) {
-			 napisDiff = diff + (diff == 1 ? " minutou. ": " minutami.");
+		
+		if (diff < 60) {
+			 diffByWords = diff + (diff == 1 ? " minutou.": " minutami.");
 		}
-		else if (diff >= oneHourInMins && diff < oneDayInMins) {
-			long rozdilVMinutach = diff/oneHourInMins;
-			napisDiff = rozdilVMinutach + (rozdilVMinutach == 1 ? " hodinou ": " hodinami ") + " a "
-				+ diff % oneHourInMins + (rozdilVMinutach == 1 ? " minutou. ": " minutami.");
+		
+		else if (diff >= 60 && diff < oneDayInMins) {
+			long diffInHours = diff/60;
+			long remainingMins = diff%60;
+			diffByWords = diffInHours + (diffInHours == 1 ? " hodinou ": " hodinami ") + " a "
+				+ remainingMins + (remainingMins == 1 ? " minutou.": " minutami.");
 		}
+		
 		else if (diff >= oneDayInMins) {
-			long rozdilVeDnech = diff/oneHourInMins/24;
-			long zbyleHodiny = (diff/oneHourInMins) % 24;
-			napisDiff = rozdilVeDnech + (rozdilVeDnech == 1 ? " dnem " : " dny ")
-				+ " a " + zbyleHodiny + (zbyleHodiny == 1 ? " hodinou. " : " hodinami.");
+			long diffInDays = (diff/60)/24;
+			long remainingHours = (diff/60) % 24;
+			diffByWords = diffInDays + (diffInDays == 1 ? " dnem " : " dny ")
+				+ " a " + remainingHours + (remainingHours == 1 ? " hodinou." : " hodinami.");
 		}
-		return napisDiff;
+		return diffByWords;
 	}
 	
 	private ArrayList<String> getPathsToLogs() {
 		ArrayList<String> pathsToLogs = new ArrayList<>();
 			for (String pathToLog : new FileSearch
-					(new ArrayList<String>(Arrays.asList("gz", "log")), null).searchFiles
-					(LOGS_FOLDER, true, false, null)) {
-				if (!pathsToLogs.contains(pathToLog)) {
-					pathsToLogs.add(pathToLog);
-				}
+					(new ArrayList<String>(Arrays.asList("gz", "log")), null)
+					.searchFiles(LOGS_DIR, true, false, null)) {
+				pathsToLogs.add(pathToLog);
 			}
 			return pathsToLogs;
 	}
 	
-	public boolean isNameFound(String name) {
-		if (pathsToLogs.isEmpty()) {
-				return false;
-		}
-		
+	public boolean isNameInLogs(String name) {
 		String nameRegex = "\\b" + name + "\\b";
 		Pattern namePattern = Pattern.compile(nameRegex, Pattern.CASE_INSENSITIVE);
 		
@@ -804,11 +801,11 @@ public class Inspection extends Thread {
 	}
 	
 	public static void endProgram() {
-		changeFileAttribute(OWN_FOLDER, "dos:hidden", false);
+		changeFileAttribute(OWN_DIR, "dos:hidden", false);
 		changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", false);
 			try {
 				byte[] previousInspectionsInfoTxtBytes = Files.readAllBytes(TXT_PREVIOUS_INSPECTIONS_INFO.toPath());	
-				for(File file : OWN_FOLDER.listFiles()) {
+				for(File file : OWN_DIR.listFiles()) {
 					if (!Arrays.equals(Files.readAllBytes(file.toPath()), previousInspectionsInfoTxtBytes)
 							&& !file.isDirectory()) {
 						file.delete();
@@ -818,8 +815,8 @@ public class Inspection extends Thread {
 				e.printStackTrace();
 			}
 			
-			if (OWN_FOLDER.exists() && !OWN_FOLDER.isHidden()) {
-				changeFileAttribute(OWN_FOLDER, "dos:hidden", true);
+			if (OWN_DIR.exists() && !OWN_DIR.isHidden()) {
+				changeFileAttribute(OWN_DIR, "dos:hidden", true);
 				changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);	
 			}
 			Platform.exit();
