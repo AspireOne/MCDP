@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 
-import com.gmail.matejpesl1.mc_cheat_detection.Main.Rezim;
+import com.gmail.matejpesl1.mc_cheat_detection.Main.Mode;
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
@@ -80,6 +80,7 @@ public class Inspection extends Thread {
 	public static final String WORD_SEPARATOR = " | ";
 	public static final String initialInfo = 0 + "\n" + 0;
 	public static final int MAIL_LATEST_LOG_LINES = 500;
+	public static final int MAIL_LOGS_KEYWORDS_LINES = 100;
 	public static final int MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
 	public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	
@@ -130,7 +131,7 @@ public class Inspection extends Thread {
 		}
 		printInspectionProgress("2");
 		
-		if (Main.mode != Rezim.DEBUG) {
+		if (Main.mode != Mode.DEBUG && Main.mode != Mode.DEMO) {
 			if (timeSinceLastInspectionMins < 3 && timeSinceLastInspectionMins >= 1) {
 				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
 			}	
@@ -241,6 +242,7 @@ public class Inspection extends Thread {
 		String foundHackKeywordsStr = convertArrayToString(foundHacksName, " | ");
 		
 		String logLinesContainingKeyword = null;
+		int logLinesContainingKeywordCounter = 0;
 		if (LOGS_DIR_EXISTS) {
 			for (String pathToLog : pathsToLogs) {
 				if (getDateDiff(LocalDateTime.now().format(FORMATTER),
@@ -254,10 +256,14 @@ public class Inspection extends Thread {
 							(getKeywordsContainedInLog
 									(pathToLog, logKeywords, true), "\n");
 					if (logLineWithKeyword != null) {
+						++logLinesContainingKeywordCounter;
+						if (logLinesContainingKeywordCounter >= MAIL_LOGS_KEYWORDS_LINES) {
+							break;
+						}
 						logLinesContainingKeyword =
 								(logLinesContainingKeyword == null ? "" :
 									logLinesContainingKeyword) + logLineWithKeyword;
-					} 
+					}
 				}
 			}	
 		} else {

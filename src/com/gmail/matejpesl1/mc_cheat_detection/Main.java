@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import com.gmail.matejpesl1.mc_cheat_detection.Inspection;
 import com.gmail.matejpesl1.servers.Basicland;
 import com.gmail.matejpesl1.servers.Debug;
+import com.gmail.matejpesl1.servers.Demo;
 import com.gmail.matejpesl1.servers.Server;
 
 import javafx.application.Application;
@@ -44,10 +45,10 @@ import javafx.scene.text.TextAlignment;
 
 
 	public class Main extends Application {
-	public static enum Rezim {DEBUG, BASICLAND};
-	public static final Rezim mode = Rezim.DEBUG;
-	public static final float PROGRAM_VERSION = 2.9f;
-	
+	public static enum Mode {DEBUG, DEMO, BASICLAND};
+	public static final Mode mode = Mode.BASICLAND;
+	public static final float PROGRAM_VERSION = 3.2f;
+
 	private static final int SPLASH_DURATION = 3000;
 	
 	private static final int W_WIDTH = 500;
@@ -68,7 +69,7 @@ import javafx.scene.text.TextAlignment;
 	public static final int MIN_NAME_LENGTH = 3;
 	
 	private static boolean inspectionRunning = false;
-	public static enum Podminka{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
+	public static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
 	private Inspection inspection;
 	private Server currentServer;
 	private Stage stage;
@@ -98,14 +99,14 @@ import javafx.scene.text.TextAlignment;
 		loadProgram();
 	}
 	public void loadProgram() {
-		Podminka unfulfilledCondition = getUnfulfilledCondition();
+		Requirement unfulfilledCondition = getUnfulfilledCondition();
 		if (unfulfilledCondition == null) {
 			inspection = new Inspection(this);
 			inspection.start();
 		}
 		
 		if (!splashWasSplashed) {
-			if (mode != Rezim.DEBUG) {
+			if (mode != Mode.DEBUG) {
 				showSplashScreen(SPLASH_DURATION);	
 			} else {
 				showSplashScreen(500);
@@ -121,7 +122,14 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	public void startProgram() {
-		showUpdateScreen();
+		//just a workaround
+		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
+		stage.show();
+		//end of workaround
+		if (mode != Mode.DEMO) {
+			showUpdateScreen();	
+		}
+		
 		showAgreementScreen();	
 	}
 	
@@ -148,7 +156,7 @@ import javafx.scene.text.TextAlignment;
 		}
 	}
 	
-	private Server determineServer(Rezim rezim) {
+	private Server determineServer(Mode rezim) {
 		Server currentServer = null;
 		switch (rezim) {
 			case DEBUG: {
@@ -156,6 +164,9 @@ import javafx.scene.text.TextAlignment;
 			} break;
 			case BASICLAND: {
 				currentServer = new Basicland();
+			} break;
+			case DEMO: {
+				currentServer = new Demo();
 			} break;
 		}
 		return currentServer;
@@ -197,11 +208,6 @@ import javafx.scene.text.TextAlignment;
 		BorderPane pane = new BorderPane();
 		pane.setBackground(getDefaultBackground());
 		pane.getChildren().add(txtProgress);
-
-		//this is here just because of bug - this is a workaround
-		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
-		stage.show();
-		//the workaround ends here
 		
 		Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 		stage.setScene(scene);
@@ -267,7 +273,7 @@ import javafx.scene.text.TextAlignment;
 		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
 		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/32x32.png").toString()));
 		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/16x16.png").toString()));
-		stage.setTitle("Kontrola | " + currentServer.getIP() + "                                                                v" + PROGRAM_VERSION);
+		stage.setTitle("Kontrola | " + currentServer.getIP() + " [v" + PROGRAM_VERSION + "]");
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 	          public void handle(WindowEvent we) {
 	              System.out.println("Stage is closing");
@@ -417,7 +423,7 @@ import javafx.scene.text.TextAlignment;
 				Normalizer.isNormalized(name, Normalizer.Form.NFD));
 	}
 	
-	private Podminka getUnfulfilledCondition() {
+	private Requirement getUnfulfilledCondition() {
 		try {
 			final URL googleURL = new URL("https://www.google.com");
 			final URLConnection connection1 = googleURL.openConnection();
@@ -427,21 +433,21 @@ import javafx.scene.text.TextAlignment;
 			connection1.getInputStream().close();
 			} catch (Exception e) {
 				e.printStackTrace();
-				return Podminka.INTERNET;
+				return Requirement.INTERNET;
 			}
 		
 		if (!Inspection.MINECRAFT_DIR.exists()) {
-			return Podminka.MINECRAFT_DIR;
+			return Requirement.MINECRAFT_DIR;
 		}
 		
 		if (!Inspection.VERSIONS_DIR.exists()) {
-			return Podminka.VERSIONS_DIR;
+			return Requirement.VERSIONS_DIR;
 		}
 
 		return null;
 	}
 	
-	private void showUnfulfilledConditionScreen(Podminka podminka) {
+	private void showUnfulfilledConditionScreen(Requirement podminka) {
 	        Text txtTitle = new Text(10, 35, "Kontrola nemohla být spuštìna, protože");
 	        txtTitle.setFont(Font.font("Verdana", 19));
 	        txtTitle.setTextAlignment(TextAlignment.CENTER);
@@ -449,7 +455,7 @@ import javafx.scene.text.TextAlignment;
 	        
 	        switch (podminka) {
 	        	case INTERNET: {
-	        		txtTitle.setText(txtTitle.getText() + " chybý internetové pøipojení.");
+	        		txtTitle.setText(txtTitle.getText() + " chybí internetové pøipojení.");
 	        	} break;
 	        	case MINECRAFT_DIR: {
 	        		txtTitle.setText(txtTitle.getText() + " nebyl nalezen Minecraft.");
