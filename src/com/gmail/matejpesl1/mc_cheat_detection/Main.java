@@ -46,7 +46,7 @@ import javafx.scene.text.TextAlignment;
 
 	public class Main extends Application {
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
-	public static final Mode mode = Mode.BASICLAND;
+	public static final Mode mode = Mode.DEBUG;
 	public static final float PROGRAM_VERSION = 3.3f;
 
 	private static final int SPLASH_DURATION = 3000;

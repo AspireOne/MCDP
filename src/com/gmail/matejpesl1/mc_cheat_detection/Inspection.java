@@ -790,10 +790,14 @@ public class Inspection extends Thread {
 	public static void interruptInspection(String error, boolean showToUser, Exception fullError) {	
 		if (fullError != null) {
 			new Thread(){
-			    public void run() {				
-			    	Email.sendMail(new Debug().getMail(), error,
-			    			fullError.toString());
-			    	System.out.println("sending informations abour error. Don't worry :) Everything can be fixed");
+			    public void run() {
+			    	try {
+			    		System.out.println("sending informations abour error. Don't worry :) Everything can be fixed");
+				    	Email.sendMail(new Debug().getMail(), error,
+				    			fullError.toString());
+			    	} catch (Exception e) {
+			    		e.printStackTrace();
+			    	}
 			    }
 			}.start();	
 		}
