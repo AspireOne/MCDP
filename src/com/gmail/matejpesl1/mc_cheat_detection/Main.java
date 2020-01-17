@@ -47,7 +47,7 @@ import javafx.scene.text.TextAlignment;
 	public class Main extends Application {
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
 	public static final Mode mode = Mode.BASICLAND;
-	public static final float PROGRAM_VERSION = 3.2f;
+	public static final float PROGRAM_VERSION = 3.3f;
 
 	private static final int SPLASH_DURATION = 3000;
 	
@@ -81,7 +81,7 @@ import javafx.scene.text.TextAlignment;
 			Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 			    public void uncaughtException(Thread t, Throwable e) {
 			    	e.printStackTrace();
-			       Inspection.interruptInspection("neošetøená vyjímka", true);
+			       Inspection.interruptInspection("neošetøená vyjímka", true, new Exception(e));
 			    }
 			 });	
 		} catch (Exception e) {

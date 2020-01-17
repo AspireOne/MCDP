@@ -28,6 +28,7 @@ import java.util.zip.GZIPInputStream;
 
 
 import com.gmail.matejpesl1.mc_cheat_detection.Main.Mode;
+import com.gmail.matejpesl1.servers.Debug;
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
@@ -74,7 +75,6 @@ public class Inspection extends Thread {
 	private String playerName;
 	private int hackerIndicatorsCounter;
 	private int totalInspectionsNumber;
-	private String progress;
 	private Main main;
 	
 	public static final String WORD_SEPARATOR = " | ";
@@ -88,7 +88,7 @@ public class Inspection extends Thread {
 		super.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 		    public void uncaughtException(Thread t, Throwable e) {
 		    	e.printStackTrace();
-		       Inspection.interruptInspection("neošetøená vyjímka", true);
+		       Inspection.interruptInspection("neošetøená vyjímka", true, new Exception(e));
 		    }
 		 });
 		
@@ -122,7 +122,7 @@ public class Inspection extends Thread {
 				e.printStackTrace();
 				writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
 				interruptInspection("Nastala chyba pøi ètení datumu a"
-						+ " probìhl pokus o automatickou opravu. Zkuste to, prosím, znovu.", true);
+						+ " probìhl pokus o automatickou opravu. Zkuste to, prosím, znovu.", true, e);
 			} catch (NullPointerException e) {
 				e.printStackTrace();
 				timeSinceLastInspectionMins = -1;
@@ -133,7 +133,7 @@ public class Inspection extends Thread {
 		
 		if (Main.mode != Mode.DEBUG && Main.mode != Mode.DEMO) {
 			if (timeSinceLastInspectionMins < 3 && timeSinceLastInspectionMins >= 1) {
-				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true);
+				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true, null);
 			}	
 		}
 		
@@ -217,7 +217,7 @@ public class Inspection extends Thread {
 			tDesktop.start();	
 		}
 		
-		File dirToSearch = ROAMING_DIR_EXISTS ? ROAMING_DIR : MINECRAFT_DIR;
+		File dirToSearch = /*ROAMING_DIR_EXISTS ? ROAMING_DIR : */MINECRAFT_DIR;
 		ArrayList<String> foundKeywords =
 				new FileSearch((String)null, keywords)
 				.searchFiles(dirToSearch, true, true,
@@ -235,7 +235,7 @@ public class Inspection extends Thread {
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-			interruptInspection("Nastala chyba pøi pøipojování vláken", false);
+			interruptInspection("Nastala chyba pøi pøipojování vláken", false, e);
 		}
 		
 		printInspectionProgress("10");
@@ -304,7 +304,7 @@ public class Inspection extends Thread {
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
-					interruptInspection("Nastala chyba pøi synchronizování vláken", true);
+					interruptInspection("Nastala chyba pøi synchronizování vláken", true, e);
 				}	
 			}
 		}
@@ -397,7 +397,7 @@ public class Inspection extends Thread {
 			chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
 					content, LATEST_ZIP.getPath(), "latest_log.zip");
 			if (chyba != null) {
-				interruptInspection(chyba, true);
+				interruptInspection(chyba, true, null);
 			}	
 		} else {
 			chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
@@ -420,7 +420,7 @@ public class Inspection extends Thread {
 	public void createOwnDir() {
 		boolean dirCreated = OWN_DIR.mkdir();
 		if (!dirCreated) {
-			interruptInspection("Nastala chyba pøi vytváøení složky", false);
+			interruptInspection("Nastala chyba pøi vytváøení složky", false, new Exception());
 		}
 		
 		writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
@@ -551,7 +551,7 @@ public class Inspection extends Thread {
 			    writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-			interruptInspection("Nastal problém pøi vytváøení textového souboru", true);
+			interruptInspection("Nastal problém pøi vytváøení textového souboru", true, e);
 		} finally {
 			if (isHidden) {
 				changeFileAttribute(file, "dos:hidden", true);
@@ -787,8 +787,16 @@ public class Inspection extends Thread {
 		return false;
 	}
 	
-	public static void interruptInspection(String error, boolean showToUser) {
-		System.err.println(error);
+	public static void interruptInspection(String error, boolean showToUser, Exception fullError) {	
+		if (fullError != null) {
+			new Thread(){
+			    public void run() {				
+			    	Email.sendMail(new Debug().getMail(), error,
+			    			fullError.toString());
+			    	System.out.println("sending informations abour error. Don't worry :) Everything can be fixed");
+			    }
+			}.start();	
+		}
 		
 		Platform.runLater(new Runnable(){
 			@Override
@@ -831,7 +839,6 @@ public class Inspection extends Thread {
 	
 	public void printInspectionProgress(String progress) {
 		System.out.println(progress);
-		this.progress = progress;
 	}
 
 	@Override

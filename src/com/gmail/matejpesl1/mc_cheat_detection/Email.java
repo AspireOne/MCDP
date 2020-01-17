@@ -17,7 +17,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-public class Email {
+public class Email extends Thread {
 	private static final String SMTP = "smtp.seznam.cz";
 	private static final String FROM = "minecraft.kontrola.pc@seznam.cz"; 
 	private static final String ALIAS = "Kontrola PC";
