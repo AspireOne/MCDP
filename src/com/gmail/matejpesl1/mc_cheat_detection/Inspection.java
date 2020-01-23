@@ -819,6 +819,7 @@ public class Inspection extends Thread {
 	}
 	
 	public static void endProgram() {
+		Main.stage.hide();
 		changeFileAttribute(OWN_DIR, "dos:hidden", false);
 		changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", false);
 			try {
@@ -837,6 +838,7 @@ public class Inspection extends Thread {
 				changeFileAttribute(OWN_DIR, "dos:hidden", true);
 				changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);	
 			}
+			
 			Platform.exit();
 			System.exit(0);
 	}

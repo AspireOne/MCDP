@@ -72,7 +72,7 @@ import javafx.scene.text.TextAlignment;
 	public static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
 	private Inspection inspection;
 	private Server currentServer;
-	private Stage stage;
+	public static Stage stage;
 	
 	private boolean splashWasSplashed;
 	
