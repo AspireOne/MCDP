@@ -788,20 +788,6 @@ public class Inspection extends Thread {
 	}
 	
 	public static void interruptInspection(String error, boolean showToUser, Exception fullError) {	
-		if (fullError != null) {
-			new Thread(){
-			    public void run() {
-			    	try {
-			    		System.out.println("sending informations abour error. Don't worry :) Everything can be fixed");
-				    	Email.sendMail(new Debug().getMail(), error,
-				    			fullError.toString());
-			    	} catch (Exception e) {
-			    		e.printStackTrace();
-			    	}
-			    }
-			}.start();	
-		}
-		
 		Platform.runLater(new Runnable(){
 			@Override
 			public void run() {
@@ -809,11 +795,24 @@ public class Inspection extends Thread {
 				alert.setTitle("Chyba");
 				alert.setHeaderText("Došlo k chybì, která"
 						+ " zabránila normální funkci programu. Žádná data nebudou odeslána.");
+				
 				if (showToUser) {
 					alert.setContentText(" Chyba: " + error);	
 				}				
+				
 				alert.showAndWait();
-				Inspection.endProgram();
+				Main.stage.hide();
+				
+				if (fullError != null) {
+			    	try {
+			    		System.out.println("sending informations abour error. Don't worry :) Everything can be fixed");
+				    	Email.sendMail(new Debug().getMail(), error,
+				    			fullError.toString());
+			    	} catch (Exception e) {
+			    		e.printStackTrace();
+			    	}
+				}
+				Inspection.endProgram();	
 			}
 		});
 	}

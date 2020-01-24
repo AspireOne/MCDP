@@ -92,7 +92,7 @@ import javafx.scene.text.TextAlignment;
 	
 	@Override
 	public void start(Stage stage) {
-		this.stage = stage;
+		Main.stage = stage;
 		loadImages();
 		currentServer = determineServer(mode);
 		prepareGUI();
