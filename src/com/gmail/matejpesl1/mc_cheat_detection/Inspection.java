@@ -336,7 +336,8 @@ public class Inspection extends Thread {
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>"
 					+ (foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
 				
-				+ "<b>Øádky z logù za posledních " + MAX_AGE_OF_LOGS_TO_INSPECT_DAYS + " dní, ve kterých byly nalezeny klíèové slova:</b><br>"
+				+ "<b>Øádky z logù za posledních " + MAX_AGE_OF_LOGS_TO_INSPECT_DAYS + " dní, ve kterých byly"
+					+ " nalezeny klíèové slova (max. " + MAIL_LOGS_KEYWORDS_LINES + "):</b><br>"
 					+ (logLinesContainingKeyword == null ? "žádné" : logLinesContainingKeyword) + "<br><br>"
 				
 				+ "<b>názvy souborù ve složce versions v hloubce 1: </b><br>"
@@ -361,6 +362,7 @@ public class Inspection extends Thread {
 				+ "<b>Chyby pøi  kontrole: </b><br>"
 					+ (errors.isEmpty() ? "žádné" : errors);
 
+		
 		
 		String latestLogContent = "latest log nebyl nazelen/neexistuje";
 		if (LATEST_LOG_EXISTS) {
