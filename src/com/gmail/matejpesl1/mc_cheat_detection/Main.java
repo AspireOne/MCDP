@@ -17,6 +17,8 @@ import com.gmail.matejpesl1.servers.Server;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Rectangle2D;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.scene.Scene;
@@ -86,9 +88,10 @@ import javafx.scene.text.TextAlignment;
 			    	e.printStackTrace();
 			       Inspection.interruptInspection("neošetøená vyjímka", true, new Exception(e));
 			    }
-			 });	
+			 });
 		} catch (Exception e) {
 			e.printStackTrace();
+			System.exit(0);
 		}
 	}
 	
@@ -280,7 +283,9 @@ import javafx.scene.text.TextAlignment;
 	              Inspection.endProgram();
 	          }
 	      });
-		stage.centerOnScreen();
+		Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
+		stage.setX((primScreenBounds.getWidth() - W_WIDTH) / 2);
+		stage.setY((primScreenBounds.getHeight() - W_HEIGHT) / 2);
 	}
 	
 	private void showAgreementScreen() {

@@ -38,24 +38,36 @@ import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.util.Zip4jConstants;
 
 public class Inspection extends Thread {
-	private final ArrayList<String> BACKUP_LOG_KEYWORDS;
-	public static final String URL_TO_KEYWORDS_STR = "https://drive.google.com/uc?export=download&id=1h1RyP_m1j29jRES-TWj55Vg47BbppSoF";
-	private static final ArrayList<String> BACKUP_KEYWORDS = new ArrayList<>(Arrays.asList("huzuni", "skillclient", "liquidbounce",
-			"wolfram", "impact_", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked", "hackclient", "hacked-client",
-			"hack-client", "pandora", "killaura", "kill-aura", "forgehax", "impact_", "impact-", "_impact", "-impact"));
+	private static final ArrayList<String> BACKUP_KEYWORDS =
+			new ArrayList<>(Arrays.asList("sigma", "huzuni", "skillclient", "liquidbounce",
+					"wolfram", "impact_", "impact-", "impactinstaller", "-impact", "_impact",
+					"aristois", "wurst", "jam", "ghostclient", "ghost-client", "ghost_client",
+					"fluxclient", "flux-client", "flux_client", "flux client", "kronos", "jigsaw",
+					"hacked", "hackclient", "hacked-client", "hack-client", "pandora", "killaura",
+					"kill-aura", "forgehax", "kami", "xray", "x-ray"));
+	
+	private static final ArrayList<String> BACKUP_LOG_KEYWORDS =
+			new ArrayList<>(Arrays.asList("ghost", "sigma", "huzuni", "skillclient", "liquidbounce",
+			"wolfram", "impact", "aristois", "wurst", "jam", "kronos", "jigsaw", "hacked",
+			"hackclient", "hacked-client", "hack-client", "pandora", "killaura", "kill-aura",
+			"forgehax", "hack", "autosoup", "antiknockback", "tpaura", "tp-aura", "regen", "blink", 
+			"nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker", "xray", "x-ray"));
+	
+	public static final String URL_TO_KEYWORDS_STR =
+			"https://drive.google.com/uc?export=download&id=1h1RyP_m1j29jRES-TWj55Vg47BbppSoF";
 	
 	public static final String PATH_ROOT = System.getProperty("user.home");
 	public static final File ROOT_DIR = new File(PATH_ROOT);
-	public static final File LOGS_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\logs");
-	public static final File ROAMING_DIR = new File(PATH_ROOT + "\\AppData\\Roaming");
+	public static final File OWN_DIR = new File(PATH_ROOT +  "\\vysledky");
+	public static final File LOGS_DIR = new File(PATH_ROOT +  "\\AppData\\Roaming\\.minecraft\\logs");
+	public static final File ROAMING_DIR = new File(PATH_ROOT +"\\AppData\\Roaming");
 	public static final File DESKTOP_DIR = new File(PATH_ROOT + "\\Desktop");
 	public static final File VERSIONS_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\versions");
 	public static final File MINECRAFT_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft");
 	public static final File DOWNLOADS_DIR = new File(Paths.get(PATH_ROOT, "Downloads").toString());
-	public static final File OWN_DIR = new File(PATH_ROOT + "\\vysledky");
+	public static final File LATEST_ZIP = new File(OWN_DIR + "\\latest.zip");
 	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
 	public static final File TXT_PREVIOUS_INSPECTIONS_INFO = new File(OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
-	public static final File LATEST_ZIP = new File(OWN_DIR + "\\latest.zip");
 	
 	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
 	public static final boolean LOGS_DIR_EXISTS = LOGS_DIR.exists();
@@ -63,14 +75,14 @@ public class Inspection extends Thread {
 	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
 	public static final boolean ROAMING_DIR_EXISTS = ROAMING_DIR.exists();
 	
-	public ArrayList<String> errors;
 	public static ArrayList<String> globalErrors = new ArrayList<>();
-	private boolean probablyWrongName;
-	private boolean probableHacker;
-	private List<String> foundHacksName;
-	private final ArrayList<String> pathsToLogs;
+	public ArrayList<String> errors;
 	private ArrayList<String> keywords;
 	private ArrayList<String> logKeywords;
+	private final ArrayList<String> pathsToLogs;
+	private List<String> foundHacksName;
+	private boolean probablyWrongName;
+	private boolean probableHacker;
 	private String lastInspectionDate;
 	private String hackerIndicators;
 	private String playerName;
@@ -86,20 +98,10 @@ public class Inspection extends Thread {
 	public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	
 	public Inspection(Main main) {
-		super.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-		    public void uncaughtException(Thread t, Throwable e) {
-		    	e.printStackTrace();
-		       Inspection.interruptInspection("neošetøená vyjímka", true, new Exception(e));
-		    }
-		 });
-		
 		this.main = main;
 		errors = new ArrayList<>();
 		foundHacksName = Collections.synchronizedList(new ArrayList<>());
 		pathsToLogs = getPathsToLogs();
-		BACKUP_LOG_KEYWORDS = new ArrayList<>(Arrays.asList("hack", "fly", "antiknockback", "speed",
-				"tpaura", "tp-aura", "regen", "blink", "nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker"));
-		BACKUP_LOG_KEYWORDS.addAll(BACKUP_KEYWORDS);
 	}
 	
 	public void doInspection() {
@@ -361,7 +363,7 @@ public class Inspection extends Thread {
 					+ " (" + getLastModificationDate(VERSIONS_DIR) + ")" + "<br><br>"
 				
 				+ "<b>Chyby pøi  kontrole: </b><br>"
-					+ (errors.isEmpty() ? "žádné" : errors)
+					+ (errors.isEmpty() ? "žádné" : errors) + "<br><br>"
 					
 				+ "<b>Ostatní chyby: </b><br>"
 					+ (globalErrors.isEmpty() ? "žádné" : errors);
