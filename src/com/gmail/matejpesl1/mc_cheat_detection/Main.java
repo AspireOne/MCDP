@@ -47,7 +47,7 @@ import javafx.scene.text.TextAlignment;
 	public class Main extends Application {
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.3f;
+	public static final float PROGRAM_VERSION = 3.4f;
 
 	private static final int SPLASH_DURATION = 3000;
 	
@@ -73,10 +73,15 @@ import javafx.scene.text.TextAlignment;
 	private Inspection inspection;
 	private Server currentServer;
 	public static Stage stage;
-	
-	private boolean splashWasSplashed;
+
+	private boolean updateAvailable;
 	
 	public static void main(String[] args) {
+		setUncatchedExceptionHandler();
+		launch(args);
+	}
+	
+	public static void setUncatchedExceptionHandler() {
 		try {
 			Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 			    public void uncaughtException(Thread t, Throwable e) {
@@ -87,49 +92,58 @@ import javafx.scene.text.TextAlignment;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		launch(args);
 	}
 	
 	@Override
 	public void start(Stage stage) {
+		currentServer = determineServer(mode);
+			try {
+				if (mode != Mode.DEBUG) {
+					getSplashScreen(SPLASH_DURATION).run();
+				} else {
+					getSplashScreen(500).run();
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		
 		Main.stage = stage;
 		loadImages();
-		currentServer = determineServer(mode);
 		prepareGUI();
 		loadProgram();
 	}
+	
 	public void loadProgram() {
+		UpdateManager updateManager = null;
+		try {
+			updateManager = new UpdateManager(this);
+			updateAvailable = updateManager.isUpdateAvailable();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Couldn't check for updates");
+		}
+		
+		//turn off splash
+		
+		if (updateAvailable) {
+			showUpdateScreen(updateManager);
+		}
+		
 		Requirement unfulfilledCondition = getUnfulfilledCondition();
 		if (unfulfilledCondition == null) {
-			inspection = new Inspection(this);
-			inspection.start();
-		}
-		
-		if (!splashWasSplashed) {
-			if (mode != Mode.DEBUG) {
-				showSplashScreen(SPLASH_DURATION);	
-			} else {
-				showSplashScreen(500);
-			}
-			splashWasSplashed = true;
-		}
-		
-		if (unfulfilledCondition != null) {
-			showUnfulfilledConditionScreen(unfulfilledCondition);
-		} else {
 			startProgram();
+		} else {
+			showUnfulfilledConditionScreen(unfulfilledCondition);
 		}
 	}
 	
 	public void startProgram() {
+		inspection = new Inspection(this);
+		inspection.start();
 		//just a workaround
 		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
 		stage.show();
 		//end of workaround
-		if (mode != Mode.DEMO) {
-			showUpdateScreen();	
-		}
-		
 		showAgreementScreen();	
 	}
 	
@@ -145,15 +159,10 @@ import javafx.scene.text.TextAlignment;
 		 return Main.class.getResource(path);
 	 }
 	
-	private void showSplashScreen(int duration) {
-		try {
-			SplashScreen splash =
-					new SplashScreen(currentServer.getBorderColor(), currentServer.getLogo(), duration);
-			splash.run();
-		} catch(Exception e) {
-			e.printStackTrace();
-			inspection.errors.add("Nepodaøilo se spustit uvítací obrazovku (splash screen).");
-		}
+	private SplashScreen getSplashScreen(int duration) throws Exception {
+		SplashScreen splash =
+				new SplashScreen(currentServer.getBorderColor(), currentServer.getLogo(), duration);
+		return splash;
 	}
 	
 	private Server determineServer(Mode rezim) {
@@ -199,8 +208,8 @@ import javafx.scene.text.TextAlignment;
 		showInspectionRunningScreen(state);
 	}
 	
-	private void showUpdateScreen() {
-        Text txtProgress = new Text(10, 35, "Probíhá kontrola aktualizací...");
+	private void showUpdateScreen(UpdateManager updateManager) {
+        Text txtProgress = new Text(10, 35, "Byla nalezena nová verze! Probíhá stahování a program bude restartován...");
         txtProgress.setFont(Font.font("Verdana", 19));
         txtProgress.setTextAlignment(TextAlignment.CENTER);
         txtProgress.setWrappingWidth(W_WIDTH - 10);
@@ -212,56 +221,34 @@ import javafx.scene.text.TextAlignment;
 		Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 		stage.setScene(scene);
 		stage.show();
-		
-		Update update = null;
-		try {			
-			update = new Update(this);
-		} catch (URISyntaxException e) {
-			showErrorInUpdateProcess("Program nedokázal najít cestu sám k sobì.", e);
-			showAgreementScreen();
-		} catch (IOException e) {
-			showErrorInUpdateProcess("Nepodaøila se ovìøit dostupnost novìjší verze.", e);
-			showAgreementScreen();
-		}
-		    
-		if (update.isUpdateAvailable()) {	
-			Alert alert = new Alert(AlertType.INFORMATION);
-			alert.setTitle("Aktualizace");
-			alert.setHeaderText("Aktualizace dostupná! Bude stažena a program bude restartován.");
-			txtProgress.setText("Stahování...");
-			alert.showAndWait();
-			update(update);
-		}
+
+		update(updateManager);
 		
 	}
 	
-	private void update(Update aktualizace) {
+	private void update(UpdateManager updateManager) {
 		try {
-			aktualizace.downloadUpdate();	
+			updateManager.downloadUpdate();	
 		} catch (IOException e) {
-			showErrorInUpdateProcess("Nepodaøilo se stáhnout novou verzi, pokraèuji se starou...", e);
-			showAgreementScreen();
+			showErrorAlert("Nepodaøilo se stáhnout novou verzi, pokraèuji se starou...", e);
+			startProgram();
 		}
 		
 		try {
-			aktualizace.update();	
+			updateManager.update();	
 		} catch (IOException e) {
-			showErrorInUpdateProcess("Aktualizace se nezdaøila, pokraèuji se starou verzí...", e);
-			showAgreementScreen();
+			showErrorAlert("Aktualizace se nezdaøila, pokraèuji se starou verzí...", e);
+			startProgram();
 		}
 	}
 	
-	private void showErrorInUpdateProcess(String error, Exception e) {
-		e.printStackTrace();
-		inspection.errors.add(error);
-		showErrorAlert(error);
-		showAgreementScreen();
-	}
-	
-	private void showErrorAlert(String chyba) {
+	private void showErrorAlert(String error, Exception e) {
+		if (e != null) {
+			e.printStackTrace();
+		}
 		Alert alert = new Alert(AlertType.ERROR);
 		alert.setTitle("Chyba");
-		alert.setHeaderText("Chyba: " + chyba);
+		alert.setHeaderText("Chyba: " + error);
 		alert.showAndWait();
 	}
 	

@@ -9,7 +9,7 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
-public class Update {
+public class UpdateManager {
 	private URL updateUrl;
 	private URL newestVerNumUrl;
 	private String thisProgramPath;
@@ -19,7 +19,7 @@ public class Update {
 	public static final File update = new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
 	private Main uvod;
 	
-	public Update(Main uvod) throws URISyntaxException, IOException {
+	public UpdateManager(Main uvod) throws URISyntaxException, IOException {
 		this.uvod = uvod;
 		 loadUrls();
 		 thisProgramPath = getThisProgramPath();
