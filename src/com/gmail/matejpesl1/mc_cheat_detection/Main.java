@@ -15,9 +15,6 @@ import com.gmail.matejpesl1.servers.Demo;
 import com.gmail.matejpesl1.servers.Server;
 
 import javafx.application.Application;
-import javafx.concurrent.Task;
-import javafx.concurrent.Worker;
-import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
@@ -52,7 +49,7 @@ import javafx.scene.text.TextAlignment;
 	public class Main extends Application {
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.3f;
+	public static final float PROGRAM_VERSION = 3.5f;
 	
 	private static final int W_WIDTH = 510;
 	private static final int W_HEIGHT = 210;
@@ -129,7 +126,9 @@ import javafx.scene.text.TextAlignment;
 				String error = "Nepodaøila se ovìøit dostupnost novìjší verze.";
 				handleErrorInUpdateProcess(error, e);
 			}
-			UpdateManager updateManagerCopy = updateManager;
+			
+		UpdateManager updateManagerCopy = updateManager;
+			
 		//turn off splash
 		if (splashIsShown) {
 			synchronized(tSplash) {
@@ -144,7 +143,7 @@ import javafx.scene.text.TextAlignment;
 			    public void run() {
 					String error = update(updateManagerCopy);
 					if (error != null) {
-						handleErrorInUpdateProcess("neoznaèená chyba", null);
+						handleErrorInUpdateProcess(error, null);
 						preStartConditionsCheck();
 					}
 			    }
