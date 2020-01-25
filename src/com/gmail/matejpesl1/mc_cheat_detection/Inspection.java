@@ -64,6 +64,7 @@ public class Inspection extends Thread {
 	public static final boolean ROAMING_DIR_EXISTS = ROAMING_DIR.exists();
 	
 	public ArrayList<String> errors;
+	public static ArrayList<String> globalErrors = new ArrayList<>();
 	private boolean probablyWrongName;
 	private boolean probableHacker;
 	private List<String> foundHacksName;
@@ -107,7 +108,7 @@ public class Inspection extends Thread {
 		if (!OWN_DIR.exists()) {
 			createOwnDir();
 		}
-		loadKezwords();
+		loadKeywords();
 		pathsToLogs.addAll(getPathsToLogs());
 		
 		String predesleKontrolyInfoStr = convertLogContentToString(TXT_PREVIOUS_INSPECTIONS_INFO.getPath());
@@ -481,7 +482,7 @@ public class Inspection extends Thread {
 		return thread;
 	}
 	
-	private void loadKezwords() {
+	private void loadKeywords() {
 		File fileWithKeywords = new File(OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
 		ArrayList<String> logKeywords = new ArrayList<>();

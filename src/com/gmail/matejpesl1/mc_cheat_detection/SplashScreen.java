@@ -9,14 +9,16 @@ public class SplashScreen extends JWindow implements Runnable {
 	private final Color borderColor;
     private final URL resourceURL;
     private final int duration;
-     
-    public SplashScreen(Color borderColor, String resourceName, int duration) {
+    Main owner;
+    
+    public SplashScreen(Color borderColor, String resourceName, int duration, Main owner) {
     	this.duration = duration;
     	this.borderColor = borderColor;
     	resourceURL = getLogo(resourceName);
+    	this.owner = owner;
     }
 
-    public void showSplash() {  
+    public void showSplash() {
         JPanel panel = (JPanel)getContentPane();
         panel.setBackground(Color.white);
          
@@ -43,8 +45,16 @@ public class SplashScreen extends JWindow implements Runnable {
             } catch (Exception e) {
             	e.printStackTrace();
             } finally {
-                close();	
+                close();
             }
+        } else {
+        	synchronized (this) {
+        		try {
+        			wait();
+        		} catch (InterruptedException e) {
+        			close();
+        		}
+        	}	
         }
     }
     
@@ -59,6 +69,6 @@ public class SplashScreen extends JWindow implements Runnable {
 
 	@Override
 	public void run() {
-		showSplash();
+		showSplash();	
 	}
 }

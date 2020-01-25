@@ -48,12 +48,10 @@ import javafx.scene.text.TextAlignment;
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
 	public static final float PROGRAM_VERSION = 3.4f;
-
-	private static final int SPLASH_DURATION = 3000;
 	
-	private static final int W_WIDTH = 500;
-	private static final int W_HEIGHT = 200;
-	private static final int IMG_SIZE = 70;
+	private static final int W_WIDTH = 510;
+	private static final int W_HEIGHT = 210;
+	private static final int IMG_SIZE = 75;
 	private static final int DEFAULT_IMG_Y = (W_HEIGHT/2 - IMG_SIZE/2) + 50;
 	private static final int IMGS_OFFSET = 100;
 	private static final int LOGO_SIZE = IMG_SIZE + 50;
@@ -73,8 +71,8 @@ import javafx.scene.text.TextAlignment;
 	private Inspection inspection;
 	private Server currentServer;
 	public static Stage stage;
-
 	private boolean updateAvailable;
+	private boolean splashIsShown;
 	
 	public static void main(String[] args) {
 		setUncatchedExceptionHandler();
@@ -97,38 +95,54 @@ import javafx.scene.text.TextAlignment;
 	@Override
 	public void start(Stage stage) {
 		currentServer = determineServer(mode);
-			try {
-				if (mode != Mode.DEBUG) {
-					getSplashScreen(SPLASH_DURATION).run();
-				} else {
-					getSplashScreen(500).run();
-				}
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
+		Thread tSplash = null;
+		try {
+			tSplash = new Thread(getSplashScreen(0));
+			tSplash.start();
+			splashIsShown = true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			Inspection.globalErrors.add("Nepodaøilo se vytvoøit splash screen.");
+		}
 		
 		Main.stage = stage;
 		loadImages();
 		prepareGUI();
-		loadProgram();
+		loadProgram(tSplash);
 	}
 	
-	public void loadProgram() {
+	public void loadProgram(Thread tSplash) {
 		UpdateManager updateManager = null;
-		try {
-			updateManager = new UpdateManager(this);
-			updateAvailable = updateManager.isUpdateAvailable();
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.out.println("Couldn't check for updates");
-		}
+			try {
+				updateManager = new UpdateManager(this);
+				updateAvailable = updateManager.isUpdateAvailable();
+			} catch (URISyntaxException e) {
+				String error = "Cesta k programu není správná.";
+				handleErrorInUpdateProcess(error, e);
+			} catch (IOException e) {
+				String error = "Nepodaøila se ovìøit dostupnost novìjší verze.";
+				handleErrorInUpdateProcess(error, e);
+			}
 		
 		//turn off splash
-		
-		if (updateAvailable) {
-			showUpdateScreen(updateManager);
+		if (splashIsShown) {
+			synchronized(tSplash) {
+				tSplash.interrupt();
+			}
+			splashIsShown = false;
 		}
 		
+		if (updateAvailable) {
+			showUpdateScreen();
+			String error = update(updateManager);
+			if (error != null) {
+				handleErrorInUpdateProcess(error, null);
+			}
+		}
+		preStartConditionsCheck();
+	}
+	
+	public void preStartConditionsCheck() {
 		Requirement unfulfilledCondition = getUnfulfilledCondition();
 		if (unfulfilledCondition == null) {
 			startProgram();
@@ -141,8 +155,8 @@ import javafx.scene.text.TextAlignment;
 		inspection = new Inspection(this);
 		inspection.start();
 		//just a workaround
-		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
-		stage.show();
+		//	stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
+		//stage.show();
 		//end of workaround
 		showAgreementScreen();	
 	}
@@ -160,9 +174,7 @@ import javafx.scene.text.TextAlignment;
 	 }
 	
 	private SplashScreen getSplashScreen(int duration) throws Exception {
-		SplashScreen splash =
-				new SplashScreen(currentServer.getBorderColor(), currentServer.getLogo(), duration);
-		return splash;
+		return new SplashScreen(currentServer.getBorderColor(), currentServer.getLogo(), duration, this);
 	}
 	
 	private Server determineServer(Mode rezim) {
@@ -208,7 +220,7 @@ import javafx.scene.text.TextAlignment;
 		showInspectionRunningScreen(state);
 	}
 	
-	private void showUpdateScreen(UpdateManager updateManager) {
+	private void showUpdateScreen() {
         Text txtProgress = new Text(10, 35, "Byla nalezena nová verze! Probíhá stahování a program bude restartován...");
         txtProgress.setFont(Font.font("Verdana", 19));
         txtProgress.setTextAlignment(TextAlignment.CENTER);
@@ -221,35 +233,36 @@ import javafx.scene.text.TextAlignment;
 		Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 		stage.setScene(scene);
 		stage.show();
-
-		update(updateManager);
-		
 	}
 	
-	private void update(UpdateManager updateManager) {
+	private String update(UpdateManager updateManager) {
 		try {
-			updateManager.downloadUpdate();	
+			updateManager.downloadUpdate();
 		} catch (IOException e) {
-			showErrorAlert("Nepodaøilo se stáhnout novou verzi, pokraèuji se starou...", e);
-			startProgram();
+			return "Nepodaøilo se stáhnout novou verzi.";
 		}
 		
 		try {
 			updateManager.update();	
 		} catch (IOException e) {
-			showErrorAlert("Aktualizace se nezdaøila, pokraèuji se starou verzí...", e);
-			startProgram();
+			return "Proces aktualizace se nezdaøil.";
 		}
+		return null;
 	}
 	
-	private void showErrorAlert(String error, Exception e) {
+	private void showErrorAlert(String title, String error, Exception e) {
 		if (e != null) {
 			e.printStackTrace();
 		}
 		Alert alert = new Alert(AlertType.ERROR);
-		alert.setTitle("Chyba");
+		alert.setTitle(title == null ? "Chyba" : title);
 		alert.setHeaderText("Chyba: " + error);
 		alert.showAndWait();
+	}
+	
+	private void handleErrorInUpdateProcess(String error, Exception e) {
+		showErrorAlert("Chyba pøi aktualizaci", error + " Pokraèuji se starou verzí programu...", e);
+		Inspection.globalErrors.add(error);
 	}
 	
 	private void prepareGUI() {
@@ -475,7 +488,7 @@ import javafx.scene.text.TextAlignment;
 	            @Override
 	            public void handle(MouseEvent event) {
 	            	pane.getChildren().clear();
-	            	loadProgram();
+	            	preStartConditionsCheck();
 	            }            
 	        });
 	        
@@ -491,7 +504,7 @@ import javafx.scene.text.TextAlignment;
 		inspectionRunning = true;
 		inspection.supplyData(jmeno, pravdepodobneNespravneJmeno);
 		synchronized (inspection)  {
-			inspection.notify();   
+			inspection.notify();
 		}
 		showInspectionRunningScreen("Probíhá kontrola...");
 	}
