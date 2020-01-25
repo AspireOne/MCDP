@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -575,7 +577,6 @@ public class Inspection extends Thread {
 			Files.setAttribute(file.toPath(), attributeToChange, value);
 		} catch (IOException e) {
 			e.printStackTrace();
-			//chyby.add("Nastal problém pøi mìnìní atributu složek");
 		} catch (NullPointerException e) {
 			e.printStackTrace();
 		}
@@ -795,7 +796,7 @@ public class Inspection extends Thread {
 		return false;
 	}
 	
-	public static void interruptInspection(String error, boolean showToUser, Exception fullError) {	
+	public static void interruptInspection(String error, boolean showToUser, Exception e) {	
 		Platform.runLater(new Runnable(){
 			@Override
 			public void run() {
@@ -811,11 +812,15 @@ public class Inspection extends Thread {
 				alert.showAndWait();
 				Main.stage.hide();
 				
-				if (fullError != null) {
+				if (e != null) {
 			    	try {
-			    		System.out.println("sending informations abour error. Don't worry :) Everything can be fixed");
+			    		System.out.println("sending informations about error.");
+			    		StringWriter sw = new StringWriter();
+			    		PrintWriter pw = new PrintWriter(sw);
+			    		e.printStackTrace(pw);
+			    		String sStackTrace = sw.toString(); // stack trace as a string
 				    	Email.sendMail(new Debug().getMail(), error,
-				    			fullError.toString());
+				    			sStackTrace);
 			    	} catch (Exception e) {
 			    		e.printStackTrace();
 			    	}

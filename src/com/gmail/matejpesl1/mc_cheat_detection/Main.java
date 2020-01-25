@@ -83,7 +83,7 @@ import javafx.scene.text.TextAlignment;
 	
 	public static void setUncatchedExceptionHandler() {
 		try {
-			Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+			Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 			    public void uncaughtException(Thread t, Throwable e) {
 			    	e.printStackTrace();
 			       Inspection.interruptInspection("neošetøená vyjímka", true, new Exception(e));
