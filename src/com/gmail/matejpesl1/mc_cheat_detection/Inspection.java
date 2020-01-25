@@ -361,7 +361,10 @@ public class Inspection extends Thread {
 					+ " (" + getLastModificationDate(VERSIONS_DIR) + ")" + "<br><br>"
 				
 				+ "<b>Chyby pøi  kontrole: </b><br>"
-					+ (errors.isEmpty() ? "žádné" : errors);
+					+ (errors.isEmpty() ? "žádné" : errors)
+					
+				+ "<b>Ostatní chyby: </b><br>"
+					+ (globalErrors.isEmpty() ? "žádné" : errors);
 
 		
 		

@@ -155,8 +155,8 @@ import javafx.scene.text.TextAlignment;
 		inspection = new Inspection(this);
 		inspection.start();
 		//just a workaround
-		//	stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
-		//stage.show();
+		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
+		stage.show();
 		//end of workaround
 		showAgreementScreen();	
 	}
