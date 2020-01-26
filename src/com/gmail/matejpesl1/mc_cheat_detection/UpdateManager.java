@@ -9,32 +9,35 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
-import javafx.application.Platform;
-
 public class UpdateManager {
 	private URL updateUrl;
 	private URL newestVerNumUrl;
-	private String thisProgramPath;
-	public final float newestVerNum;
+	private final String thisProgramPath;
+	private float newestVerNum;
 	private boolean downloaded;
-	public static final File newestVerNumFile = new File(Inspection.OWN_DIR.getPath() + "\\newestVerNum.txt");
-	public static final File update = new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
+	public static final File NEWEST_VER_NUM_FILE = 
+			new File(Inspection.OWN_DIR.getPath() + "\\newestVerNum.txt");
+	public static final File UPDATE_FILE = 
+			new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
 	private Main uvod;
 	
-	public UpdateManager(Main uvod) throws URISyntaxException, IOException {
+	public UpdateManager(Main uvod) throws URISyntaxException, MalformedURLException {
 		this.uvod = uvod;
-		 loadUrls();
-		 thisProgramPath = getThisProgramPath();
-		 newestVerNum = getNewestVerNum();
-		 if (!Inspection.OWN_DIR.exists()) {
-			 new Inspection(null).createOwnDir();
-		 }
+		thisProgramPath = getThisProgramPath();
+		loadUrls();
+		if (!Inspection.OWN_DIR.exists()) {
+			new Inspection(null).createOwnDir();
+		}
 	}
 	
 	private float getNewestVerNum() throws IOException {
-		download(newestVerNumUrl, newestVerNumFile.getPath());
-		float newestVerNum = Float.parseFloat(new Inspection(null).convertLogContentToString(newestVerNumFile.getPath()));
-		newestVerNumFile.delete();
+		download(newestVerNumUrl, NEWEST_VER_NUM_FILE.getPath());
+		float newestVerNum = 
+				Float.parseFloat
+				(new Inspection(null)
+						.convertLogContentToString
+						(NEWEST_VER_NUM_FILE.getPath()));
+		NEWEST_VER_NUM_FILE.delete();
 		return newestVerNum;
 	}
 	
@@ -46,27 +49,31 @@ public class UpdateManager {
 		    rbc.close();
 	}
 	
-	private void loadUrls() {
-		 try {
-			 updateUrl = new URL(uvod.getCurrentServer().getUpdateLink());
-			 newestVerNumUrl = new URL("https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp");
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
-			}
+	private void loadUrls() throws MalformedURLException {
+		updateUrl = 
+				new URL(uvod.getCurrentServer().getUpdateLink());
+		newestVerNumUrl = 
+				new URL("https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp");
 	}
 	
 	private String getThisProgramPath() throws URISyntaxException {
 		String thisProgramPath = null;
-		/*
-			thisProgramPath = new File(Uvod.class.getProtectionDomain().getCodeSource().getLocation()
-					.toURI()).getPath();
-			*/
-		String thisProgramName = new File(System.getProperty("java.class.path")).getName();
-		thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
+		//better method, but doesn't work with reflection
+		thisProgramPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation()
+				.toURI()).getPath();
+		
+		//worse method, but works with reflection
+		//String thisProgramName = new File(System.getProperty("java.class.path")).getName();
+		//thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
+		System.out.println("path: " + thisProgramPath);
 		return thisProgramPath;
 	}
 	
-	public boolean isUpdateAvailable() {
+	public boolean isUpdateAvailable() throws IOException {
+		if (newestVerNum == 0) {
+			newestVerNum = getNewestVerNum();
+		}
+		
 		if (Main.PROGRAM_VERSION < newestVerNum) {
 			return true;
 		} else {
@@ -75,7 +82,7 @@ public class UpdateManager {
 	}
 	
 	public void downloadUpdate() throws IOException {
-			download(updateUrl, update.getPath());
+			download(updateUrl, UPDATE_FILE.getPath());
 			downloaded = true;
 	}
 	
@@ -84,8 +91,7 @@ public class UpdateManager {
 			downloadUpdate();
 		}
 		new ProcessBuilder().command("cmd.exe", "/c", "PING -n 2 127.0.0.1>nul && " +
-				"move /Y \"" + update.getPath() + "\"  \"" + thisProgramPath + "\" && \"" + thisProgramPath + "\"").start();
-		Platform.exit();
+				"move /Y \"" + UPDATE_FILE.getPath() + "\"  \"" + thisProgramPath + "\" && \"" + thisProgramPath + "\"").start();
 		System.exit(0);
 	}
 }

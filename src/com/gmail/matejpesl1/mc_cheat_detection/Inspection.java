@@ -35,9 +35,11 @@ import com.gmail.matejpesl1.servers.Debug;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
-import net.lingala.zip4j.util.Zip4jConstants;
+import net.lingala.zip4j.model.enums.CompressionLevel;
+import net.lingala.zip4j.model.enums.CompressionMethod;
+import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 public class Inspection extends Thread {
 	private static final ArrayList<String> BACKUP_KEYWORDS =
@@ -69,7 +71,8 @@ public class Inspection extends Thread {
 	public static final File DOWNLOADS_DIR = new File(Paths.get(PATH_ROOT, "Downloads").toString());
 	public static final File LATEST_ZIP = new File(OWN_DIR + "\\latest.zip");
 	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
-	public static final File TXT_PREVIOUS_INSPECTIONS_INFO = new File(OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
+	public static final File TXT_PREVIOUS_INSPECTIONS_INFO = 
+			new File(OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
 	
 	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
 	public static final boolean LOGS_DIR_EXISTS = LOGS_DIR.exists();
@@ -97,7 +100,8 @@ public class Inspection extends Thread {
 	public static final int MAIL_LATEST_LOG_LINES = 500;
 	public static final int MAIL_LOGS_KEYWORDS_LINES = 100;
 	public static final int MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
-	public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+	public static final DateTimeFormatter FORMATTER = 
+			DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	
 	public Inspection(Main main) {
 		this.main = main;
@@ -115,14 +119,16 @@ public class Inspection extends Thread {
 		loadKeywords();
 		pathsToLogs.addAll(getPathsToLogs());
 		
-		String predesleKontrolyInfoStr = convertLogContentToString(TXT_PREVIOUS_INSPECTIONS_INFO.getPath());
+		String predesleKontrolyInfoStr = 
+				convertLogContentToString(TXT_PREVIOUS_INSPECTIONS_INFO.getPath());
 	
 		lastInspectionDate = getLine(predesleKontrolyInfoStr, 2);
 		long timeSinceLastInspectionMins = 0;
 		if (!lastInspectionDate.equals("0")) {
 			try {
 				timeSinceLastInspectionMins =
-						getDateDiff(LocalDateTime.now().format(FORMATTER), lastInspectionDate, TimeUnit.MINUTES);	
+						getDateDiff(LocalDateTime.now()
+								.format(FORMATTER), lastInspectionDate, TimeUnit.MINUTES);	
 			} catch (DateTimeParseException e) {
 				e.printStackTrace();
 				writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
@@ -251,7 +257,8 @@ public class Inspection extends Thread {
 		if (LOGS_DIR_EXISTS) {
 			for (String pathToLog : pathsToLogs) {
 				if (getDateDiff(LocalDateTime.now().format(FORMATTER),
-						getLastModificationDate(new File(pathToLog)), TimeUnit.DAYS) < MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
+						getLastModificationDate
+						(new File(pathToLog)), TimeUnit.DAYS) < MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
 					if (new File(pathToLog).getName().contains("debug")) {
 						continue;
 					}
@@ -277,7 +284,7 @@ public class Inspection extends Thread {
 			errors.add(error);
 		}
 
-		printInspectionProgress("11");
+		printInspectionProgress("11 - waiting for player name (if not already gotten)");
 
 		boolean versionNamesAreNotStandard = false;
 		ArrayList<String> namesOfNotStandardDirs = new ArrayList<>();
@@ -287,6 +294,7 @@ public class Inspection extends Thread {
 				namesOfNotStandardDirs.add(dirName);
 			}
 		}
+		
 		if (versionNamesAreNotStandard) {
 			probableHacker = true;
 			addHackerIndicator("název/názvy Minecraft verze ve složce versions je/jsou nestandardní. (" +
@@ -374,7 +382,8 @@ public class Inspection extends Thread {
 		
 		String latestLogContent = "latest log nebyl nazelen/neexistuje";
 		if (LATEST_LOG_EXISTS) {
-			latestLogContent = cutString(convertLogContentToString(LATEST_LOG.getPath()), MAIL_LATEST_LOG_LINES);
+			latestLogContent =
+					cutString(convertLogContentToString(LATEST_LOG.getPath()), MAIL_LATEST_LOG_LINES);
 			try {
 				createZip(LATEST_LOG, LATEST_ZIP.toString(), null);
 			} catch (Exception e) {
@@ -392,7 +401,7 @@ public class Inspection extends Thread {
 			}
 		});
 		
-		String title = "Výsledky kontroly PC hráèe " + playerName;
+		String title = "Kontrola hráèe " + playerName;
 		String content = "";
 		if (LATEST_LOG_EXISTS) {
 			content = results + "<br><br>----------------------------------------------------------------------------"
@@ -402,22 +411,25 @@ public class Inspection extends Thread {
 			content = results + "<br><br>----------------------------------------------------------------------------"
 					+ "<br><b>Latest log nebyl nalezen/neexistuje. </b>";
 		}
+		
 		String chyba = null;
+		
 		if (LATEST_LOG_EXISTS) {
 			chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
 					content, LATEST_ZIP.getPath(), "latest_log.zip");
-			if (chyba != null) {
-				interruptInspection(chyba, true, null);
-			}	
 		} else {
 			chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
 					content);
 		}
 		
+		if (chyba != null) {
+			interruptInspection(chyba, true, null);
+		}
+		
 		updatePreviousInspectionsInfo(TXT_PREVIOUS_INSPECTIONS_INFO, totalInspectionsNumber,
 				LocalDateTime.now().format(FORMATTER));
 		
-		printInspectionProgress("FINAL");
+		printInspectionProgress("14 - FINAL");
 		
 		Platform.runLater(new Runnable(){
 			@Override
@@ -425,6 +437,7 @@ public class Inspection extends Thread {
 				main.showInspectionCompletedScreen(errors);
 			}
 		});
+		System.out.println("Inspection done");
 	}
 	
 	public void createOwnDir() {
@@ -455,16 +468,15 @@ public class Inspection extends Thread {
 	
 	public void createZip(File fileToZip, String zipDestination, String pass) throws Exception {
 	        ZipParameters params = new ZipParameters();
-	        params.setCompressionMethod(Zip4jConstants.COMP_DEFLATE);
-	        params.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_ULTRA);
+	        ZipFile zipFile = new ZipFile(zipDestination);
+	        params.setCompressionMethod(CompressionMethod.DEFLATE);
+	        params.setCompressionLevel(CompressionLevel.ULTRA);
 	        if (pass != null) {
 	            params.setEncryptFiles(true);
-	            params.setEncryptionMethod(Zip4jConstants.ENC_METHOD_AES);
-	            params.setAesKeyStrength(Zip4jConstants.AES_STRENGTH_256);
-	            params.setPassword(pass);
+	            params.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
+	            zipFile.setPassword(pass.toCharArray());
 	        }
-	        
-	        ZipFile zipFile = new ZipFile(zipDestination);
+	       
 	        if (fileToZip.isFile()) {
 	            zipFile.addFile(fileToZip, params);
 	        } else if (fileToZip.isDirectory()) {
@@ -529,6 +541,7 @@ public class Inspection extends Thread {
 				}
 			}
 		} catch (Exception e) {
+			System.out.println("Chyba pøi stahování klíèových slov");
 			e.printStackTrace();
 			this.keywords = BACKUP_KEYWORDS;
 			this.logKeywords = BACKUP_LOG_KEYWORDS;
@@ -819,9 +832,10 @@ public class Inspection extends Thread {
 			    		PrintWriter pw = new PrintWriter(sw);
 			    		e.printStackTrace(pw);
 			    		String sStackTrace = sw.toString(); // stack trace as a string
-				    	Email.sendMail(new Debug().getMail(), error,
+				    	Email.sendMail(new Debug().getMail(), error + " (v" + Main.PROGRAM_VERSION + ")",
 				    			sStackTrace);
 			    	} catch (Exception e) {
+			    		System.out.println("Nepodaøilo se odeslat informace o chybì");
 			    		e.printStackTrace();
 			    	}
 				}
@@ -850,7 +864,6 @@ public class Inspection extends Thread {
 				changeFileAttribute(OWN_DIR, "dos:hidden", true);
 				changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);	
 			}
-			
 			Platform.exit();
 			System.exit(0);
 	}

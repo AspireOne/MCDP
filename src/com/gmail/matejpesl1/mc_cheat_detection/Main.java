@@ -1,6 +1,7 @@
 package com.gmail.matejpesl1.mc_cheat_detection;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -49,7 +50,7 @@ import javafx.scene.text.TextAlignment;
 	public class Main extends Application {
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.5f;
+	public static final float PROGRAM_VERSION = 3.6f;
 	
 	private static final int W_WIDTH = 510;
 	private static final int W_HEIGHT = 210;
@@ -116,19 +117,23 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	public void preloadProgram(Thread tSplash) {
-		UpdateManager updateManager = null;
+		UpdateManager updateManagerTemp = null;
 			try {
-				updateManager = new UpdateManager(this);
-				updateAvailable = updateManager.isUpdateAvailable();
+				updateManagerTemp = new UpdateManager(this);
+				updateAvailable = updateManagerTemp.isUpdateAvailable();
 			} catch (URISyntaxException e) {
 				String error = "Cesta k programu není správná.";
 				handleErrorInUpdateProcess(error, e);
+			} catch (MalformedURLException e) {
+				String error = "Nelze naèíst odkazy na soubory.";
+				handleErrorInUpdateProcess(error, e);
 			} catch (IOException e) {
-				String error = "Nepodaøila se ovìøit dostupnost novìjší verze.";
+				String error = "Nelze stáhnout soubor s nejnovìjší verzí programu.";
 				handleErrorInUpdateProcess(error, e);
 			}
 			
-		UpdateManager updateManagerCopy = updateManager;
+		UpdateManager updateManager = updateManagerTemp;
+		updateManagerTemp = null;
 			
 		//turn off splash
 		if (splashIsShown) {
@@ -142,7 +147,7 @@ import javafx.scene.text.TextAlignment;
 			showUpdateScreen();
 			new Thread() {
 			    public void run() {
-					String error = update(updateManagerCopy);
+					String error = update(updateManager);
 					if (error != null) {
 						handleErrorInUpdateProcess(error, null);
 						checkConditionsAndStartProgram();
@@ -279,8 +284,9 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	private void handleErrorInUpdateProcess(String error, Exception e) {
-		showErrorAlert("Chyba pøi aktualizaci", error + " Pokraèuji se starou verzí programu...", e);
+		System.out.println(error);
 		Inspection.globalErrors.add(error);
+		showErrorAlert("Chyba pøi aktualizaci", error + " Pokraèuji se starou verzí programu...", e);
 	}
 	
 	private void prepareGUI() {
