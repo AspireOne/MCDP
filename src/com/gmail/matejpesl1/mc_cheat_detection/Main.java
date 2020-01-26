@@ -110,12 +110,12 @@ import javafx.scene.text.TextAlignment;
 		}
 		
 		Main.stage = stage;
-		loadImages();
+		loadResources();
 		prepareGUI();
-		loadProgram(tSplash);
+		preloadProgram(tSplash);
 	}
 	
-	public void loadProgram(Thread tSplash) {
+	public void preloadProgram(Thread tSplash) {
 		UpdateManager updateManager = null;
 			try {
 				updateManager = new UpdateManager(this);
@@ -145,16 +145,16 @@ import javafx.scene.text.TextAlignment;
 					String error = update(updateManagerCopy);
 					if (error != null) {
 						handleErrorInUpdateProcess(error, null);
-						preStartConditionsCheck();
+						checkConditionsAndStartProgram();
 					}
 			    }
 			}.start();
 		} else {
-			preStartConditionsCheck();	
+			checkConditionsAndStartProgram();	
 		}
 	}
 	
-	public void preStartConditionsCheck() {
+	public void checkConditionsAndStartProgram() {
 		Requirement unfulfilledCondition = getUnfulfilledCondition();
 		if (unfulfilledCondition == null) {
 			startProgram();
@@ -173,7 +173,7 @@ import javafx.scene.text.TextAlignment;
 		showAgreementScreen();
 	}
 	
-	private void loadImages() {
+	private void loadResources() {
 		programLogo = new ImageView(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
 		checkMark = new ImageView(new Image(getInternalFile("/resources/UI/checkmark.png").toString()));	
 		xMark = new ImageView(new Image(getInternalFile("/resources/UI/xmark.png").toString()));
@@ -468,7 +468,7 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	private void showUnfulfilledConditionScreen(Requirement podminka) {
-	        Text txtTitle = new Text(10, 35, "Kontrola nemohla být spuštìna, protože");
+	        Text txtTitle = new Text(10, 35, "Nelze pokraèovat, protože");
 	        txtTitle.setFont(Font.font("Verdana", 19));
 	        txtTitle.setTextAlignment(TextAlignment.CENTER);
 	        txtTitle.setWrappingWidth(W_WIDTH - 10);
@@ -508,7 +508,7 @@ import javafx.scene.text.TextAlignment;
 	            @Override
 	            public void handle(MouseEvent event) {
 	            	pane.getChildren().clear();
-	            	preStartConditionsCheck();
+	            	checkConditionsAndStartProgram();
 	            }            
 	        });
 	        
