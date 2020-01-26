@@ -63,6 +63,7 @@ import javafx.scene.text.TextAlignment;
 	public static ImageView exit;
 	public static ImageView programLogo;
 	public static ImageView retry;
+	public static ImageView updateArrow;
 	
 	public static final Pattern UNALLOWED_NAME_CHARACTERS = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
 	public static final int MAX_NAME_LENGTH = 16;
@@ -70,9 +71,9 @@ import javafx.scene.text.TextAlignment;
 	
 	private static boolean inspectionRunning = false;
 	public static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
+	public static Stage stage;
 	private Inspection inspection;
 	private Server currentServer;
-	public static Stage stage;
 	private boolean updateAvailable;
 	private boolean splashIsShown;
 	
@@ -169,7 +170,7 @@ import javafx.scene.text.TextAlignment;
 		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
 		stage.show();
 		//end of workaround
-		showAgreementScreen();	
+		showAgreementScreen();
 	}
 	
 	private void loadImages() {
@@ -178,6 +179,7 @@ import javafx.scene.text.TextAlignment;
 		xMark = new ImageView(new Image(getInternalFile("/resources/UI/xmark.png").toString()));
 		exit = new ImageView(new Image(getInternalFile("/resources/UI/exit.png").toString()));
 		retry = new ImageView(new Image(getInternalFile("/resources/UI/retry.png").toString()));
+		updateArrow = new ImageView(new Image(getInternalFile("/resources/UI/update-arrow.png").toString()));
 	}
 
 	 public static URL getInternalFile(String path) {
@@ -205,7 +207,6 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	public void showInspectionRunningScreen(String state) {
-
 		Text txtProgress = new Text(10, 35, state);
       
 	    programLogo.setX((W_WIDTH/2 - LOGO_SIZE/2));
@@ -236,10 +237,16 @@ import javafx.scene.text.TextAlignment;
         txtProgress.setFont(Font.font("Verdana", 19));
         txtProgress.setTextAlignment(TextAlignment.CENTER);
         txtProgress.setWrappingWidth(W_WIDTH - 10);
+
+        updateArrow.setX((W_WIDTH/2 - LOGO_SIZE/2));
+        updateArrow.setY(W_HEIGHT - LOGO_SIZE - 10);
+        
+        updateArrow.setFitHeight(LOGO_SIZE);
+        updateArrow.setFitWidth(LOGO_SIZE);
         
 		BorderPane pane = new BorderPane();
 		pane.setBackground(getDefaultBackground());
-		pane.getChildren().add(txtProgress);
+		pane.getChildren().addAll(txtProgress, updateArrow);
 		
 		Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 		stage.setScene(scene);

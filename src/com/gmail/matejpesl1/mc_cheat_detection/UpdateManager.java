@@ -9,6 +9,8 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
+import javafx.application.Platform;
+
 public class UpdateManager {
 	private URL updateUrl;
 	private URL newestVerNumUrl;
@@ -83,6 +85,7 @@ public class UpdateManager {
 		}
 		new ProcessBuilder().command("cmd.exe", "/c", "PING -n 2 127.0.0.1>nul && " +
 				"move /Y \"" + update.getPath() + "\"  \"" + thisProgramPath + "\" && \"" + thisProgramPath + "\"").start();
+		Platform.exit();
 		System.exit(0);
 	}
 }
