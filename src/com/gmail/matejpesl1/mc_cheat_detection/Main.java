@@ -79,7 +79,6 @@ import javafx.scene.text.TextAlignment;
 	
 	public static void main(String[] args) {
 		setUncatchedExceptionHandler();
-		System.out.println("uncaugh exception handler set");
 		launch(args);
 	}
 	
