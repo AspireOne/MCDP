@@ -49,8 +49,8 @@ import javafx.scene.text.TextAlignment;
 
 	public class Main extends Application {
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
-	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.6f;
+	public static final Mode mode = Mode.BASICLAND;
+	public static final float PROGRAM_VERSION = 3.7f;
 	
 	private static final int W_WIDTH = 510;
 	private static final int W_HEIGHT = 210;
@@ -455,7 +455,7 @@ import javafx.scene.text.TextAlignment;
 			final URL googleURL = new URL("https://www.google.com");
 			final URLConnection connection1 = googleURL.openConnection();
 			connection1.connect();
-			connection1.setConnectTimeout(6000);
+			connection1.setConnectTimeout(4000);
 			connection1.setReadTimeout(4000);
 			connection1.getInputStream().close();
 			} catch (Exception e) {
