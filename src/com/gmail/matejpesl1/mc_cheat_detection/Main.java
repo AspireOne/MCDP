@@ -118,6 +118,7 @@ import javafx.scene.text.TextAlignment;
 	
 	public void preloadProgram(Thread tSplash) {
 		UpdateManager updateManagerTemp = null;
+		
 			try {
 				updateManagerTemp = new UpdateManager(this);
 				updateAvailable = updateManagerTemp.isUpdateAvailable();
@@ -131,7 +132,7 @@ import javafx.scene.text.TextAlignment;
 				String error = "Nelze stáhnout soubor s nejnovìjší verzí programu.";
 				handleErrorInUpdateProcess(error, e);
 			}
-			
+
 		UpdateManager updateManager = updateManagerTemp;
 		updateManagerTemp = null;
 			

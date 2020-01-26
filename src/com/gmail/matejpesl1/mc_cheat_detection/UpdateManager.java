@@ -19,6 +19,8 @@ public class UpdateManager {
 			new File(Inspection.OWN_DIR.getPath() + "\\newestVerNum.txt");
 	public static final File UPDATE_FILE = 
 			new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
+	public static final String UPDATE_FILE_URL_STR =
+			"https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp";
 	private Main uvod;
 	
 	public UpdateManager(Main uvod) throws URISyntaxException, MalformedURLException {
@@ -53,20 +55,35 @@ public class UpdateManager {
 		updateUrl = 
 				new URL(uvod.getCurrentServer().getUpdateLink());
 		newestVerNumUrl = 
-				new URL("https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp");
+				new URL(UPDATE_FILE_URL_STR);
 	}
 	
 	private String getThisProgramPath() throws URISyntaxException {
 		String thisProgramPath = null;
-		//better method, but doesn't work with reflection
-		thisProgramPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation()
-				.toURI()).getPath();
-		
-		//worse method, but works with reflection
-		//String thisProgramName = new File(System.getProperty("java.class.path")).getName();
-		//thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
+		if (isProgramInIDE()) {
+			String thisProgramName = new File(System.getProperty("java.class.path")).getName();
+			thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
+		} else {
+			thisProgramPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation()
+					.toURI()).getPath();	
+		}
+
 		System.out.println("path: " + thisProgramPath);
 		return thisProgramPath;
+	}
+	
+	public static boolean isProgramInIDE() {
+	    boolean isEclipse = System.getProperty("java.class.path").toLowerCase().contains("eclipse");
+	    boolean isIntellij = 
+	    		System.getProperty("java.class.path")
+	    		.toLowerCase()
+	    		.contains("idea.test.cyclic.buffer.size");
+	    if (!isEclipse && !isIntellij) {
+	    	return false;
+	    } else {
+	    	System.out.println("is ide");
+	    	return true;
+	    }
 	}
 	
 	public boolean isUpdateAvailable() throws IOException {

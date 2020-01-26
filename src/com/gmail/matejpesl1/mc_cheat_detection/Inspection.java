@@ -458,7 +458,7 @@ public class Inspection extends Thread {
 		for (String line : lines) {
 			++currentLinePos;
 			if (currentLinePos <= maxNumberOfLines) {
-				allLines = (allLines == null ? "" : allLines + "\n") + line;	
+				allLines = (allLines == null ? "" : allLines + "\n") + line;
 			} else {
 				break;
 			}	
@@ -507,7 +507,7 @@ public class Inspection extends Thread {
 		ArrayList<String> logKeywords = new ArrayList<>();
 		
 		try {
-			ReadableByteChannel rbc = Channels.newChannel(new URL(URL_TO_KEYWORDS_STR).openStream());
+			ReadableByteChannel rbc = Channels.newChannel(new URL(URL_TO_KEYWORDS_STR).openStream()); //TODO CHANGE LINK TO NORMAL
 			FileOutputStream fos = new FileOutputStream(fileWithKeywords);
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 		    fos.close();
