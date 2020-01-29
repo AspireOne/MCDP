@@ -49,7 +49,7 @@ import javafx.scene.text.TextAlignment;
 
 	public class Main extends Application {
 	public static enum Mode {DEBUG, DEMO, BASICLAND};
-	public static final Mode mode = Mode.BASICLAND;
+	public static final Mode mode = Mode.DEBUG;
 	public static final float PROGRAM_VERSION = 3.7f;
 	
 	private static final int W_WIDTH = 510;
@@ -73,7 +73,8 @@ import javafx.scene.text.TextAlignment;
 	private static boolean inspectionRunning = false;
 	public static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
 	public static Stage stage;
-	private Inspection inspection;
+	public static Inspection inspection;
+	public static ArrayList<String> globalErrors = new ArrayList<>();
 	private Server currentServer;
 	private boolean updateAvailable;
 	private boolean splashIsShown;
@@ -86,11 +87,17 @@ import javafx.scene.text.TextAlignment;
 	public static void setUncatchedExceptionHandler() {
 		try {
 			Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-			    public void uncaughtException(Thread t, Throwable e) {
-			    	e.printStackTrace();
-			       Inspection.interruptInspection("neošetøená vyjímka", true, new Exception(e));
+			    public void uncaughtException(Thread t, Throwable te) {
+			    	te.printStackTrace();
+			    	String teStackTrace = te.toString() + "\n";
+			    	StackTraceElement[] trace = te.getStackTrace();
+			    	for (int i = 0; i < trace.length; ++i) {
+			    		teStackTrace += trace[i].toString() + "\n";
+			    	}
+			    	Exception e = new Exception(teStackTrace);
+			    	Inspection.interruptInspection("neošetøená vyjímka", true, e, true);
 			    }
-			 });
+			});
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(0);
@@ -107,7 +114,7 @@ import javafx.scene.text.TextAlignment;
 			splashIsShown = true;
 		} catch (Exception e) {
 			e.printStackTrace();
-			Inspection.globalErrors.add("Nepodaøilo se vytvoøit splash screen.");
+			globalErrors.add("Nepodaøilo se vytvoøit splash screen.");
 		}
 		
 		Main.stage = stage;
@@ -121,7 +128,7 @@ import javafx.scene.text.TextAlignment;
 		
 			try {
 				updateManagerTemp = new UpdateManager(this);
-				updateAvailable = updateManagerTemp.isUpdateAvailable();
+				updateAvailable = updateManagerTemp.checkUpdateAvailability();
 			} catch (URISyntaxException e) {
 				String error = "Cesta k programu není správná.";
 				handleErrorInUpdateProcess(error, e);
@@ -180,12 +187,16 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	private void loadResources() {
-		programLogo = new ImageView(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
-		checkMark = new ImageView(new Image(getInternalFile("/resources/UI/checkmark.png").toString()));	
-		xMark = new ImageView(new Image(getInternalFile("/resources/UI/xmark.png").toString()));
-		exit = new ImageView(new Image(getInternalFile("/resources/UI/exit.png").toString()));
-		retry = new ImageView(new Image(getInternalFile("/resources/UI/retry.png").toString()));
-		updateArrow = new ImageView(new Image(getInternalFile("/resources/UI/update-arrow.png").toString()));
+		programLogo = getInternalImage("/resources/program_icons/256x256.png");
+		checkMark = getInternalImage("/resources/UI/checkmark.png");
+		xMark = getInternalImage("/resources/UI/xmark.png");
+		exit = getInternalImage("/resources/UI/exit.png");
+		retry = getInternalImage("/resources/UI/retry.png");
+		updateArrow = getInternalImage("/resources/UI/update-arrow.png");
+	}
+	
+	private ImageView getInternalImage(String pathToImage) {
+		return new ImageView(new Image(getInternalFile(pathToImage).toString()));
 	}
 
 	 public static URL getInternalFile(String path) {
@@ -286,18 +297,17 @@ import javafx.scene.text.TextAlignment;
 	
 	private void handleErrorInUpdateProcess(String error, Exception e) {
 		System.out.println(error);
-		Inspection.globalErrors.add(error);
+		globalErrors.add(error);
 		showErrorAlert("Chyba pøi aktualizaci", error + " Pokraèuji se starou verzí programu...", e);
 	}
 	
 	private void prepareGUI() {
 		stage.setResizable(false);
-		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
-		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/128x128.png").toString()));
-		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/64x64.png").toString()));
-		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/256x256.png").toString()));
-		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/32x32.png").toString()));
-		stage.getIcons().add(new Image(getInternalFile("/resources/program_icons/16x16.png").toString()));
+		addIconToStage("/resources/program_icons/256x256.png");
+		addIconToStage("/resources/program_icons/128x128.png");
+		addIconToStage("/resources/program_icons/64x64.png");
+		addIconToStage("/resources/program_icons/32x32.png");
+		addIconToStage("/resources/program_icons/16x16.png");
 		stage.setTitle("Kontrola | " + currentServer.getIP() + " [v" + PROGRAM_VERSION + "]");
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 	          public void handle(WindowEvent we) {
@@ -308,6 +318,10 @@ import javafx.scene.text.TextAlignment;
 		Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
 		stage.setX((primScreenBounds.getWidth() - W_WIDTH) / 2);
 		stage.setY((primScreenBounds.getHeight() - W_HEIGHT) / 2);
+	}
+	
+	private void addIconToStage(String pathToIcon) {
+		stage.getIcons().add(new Image(getInternalFile(pathToIcon).toString()));
 	}
 	
 	private void showAgreementScreen() {

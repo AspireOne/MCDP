@@ -60,13 +60,8 @@ public class UpdateManager {
 	
 	private String getThisProgramPath() throws URISyntaxException {
 		String thisProgramPath = null;
-		if (isProgramInIDE()) {
-			String thisProgramName = new File(System.getProperty("java.class.path")).getName();
-			thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
-		} else {
-			thisProgramPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation()
-					.toURI()).getPath();	
-		}
+		String thisProgramName = new File(System.getProperty("java.class.path")).getName();
+		thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
 
 		System.out.println("path: " + thisProgramPath);
 		return thisProgramPath;
@@ -86,7 +81,7 @@ public class UpdateManager {
 	    }
 	}
 	
-	public boolean isUpdateAvailable() throws IOException {
+	public boolean checkUpdateAvailability() throws IOException {
 		if (newestVerNum == 0) {
 			newestVerNum = getNewestVerNum();
 		}

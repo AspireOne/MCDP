@@ -6,8 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -80,7 +78,6 @@ public class Inspection extends Thread {
 	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
 	public static final boolean ROAMING_DIR_EXISTS = ROAMING_DIR.exists();
 	
-	public static ArrayList<String> globalErrors = new ArrayList<>();
 	public ArrayList<String> errors;
 	private ArrayList<String> keywords;
 	private ArrayList<String> logKeywords;
@@ -94,6 +91,7 @@ public class Inspection extends Thread {
 	private int hackerIndicatorsCounter;
 	private int totalInspectionsNumber;
 	private Main main;
+	public String progress;
 	
 	public static final String WORD_SEPARATOR = " | ";
 	public static final String initialInfo = 0 + "\n" + 0;
@@ -104,6 +102,7 @@ public class Inspection extends Thread {
 			DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	
 	public Inspection(Main main) {
+		printInspectionProgress("0.5");
 		this.main = main;
 		errors = new ArrayList<>();
 		foundHacksName = Collections.synchronizedList(new ArrayList<>());
@@ -111,19 +110,24 @@ public class Inspection extends Thread {
 	}
 	
 	public void doInspection() {
-		LATEST_ZIP.deleteOnExit();
 		printInspectionProgress("1");
+		LATEST_ZIP.deleteOnExit();
+		
 		if (!OWN_DIR.exists()) {
 			createOwnDir();
 		}
+		
 		loadKeywords();
 		pathsToLogs.addAll(getPathsToLogs());
 		
 		String predesleKontrolyInfoStr = 
 				convertLogContentToString(TXT_PREVIOUS_INSPECTIONS_INFO.getPath());
-	
+		
 		lastInspectionDate = getLine(predesleKontrolyInfoStr, 2);
 		long timeSinceLastInspectionMins = 0;
+		//progress
+		printInspectionProgress("2");
+		
 		if (!lastInspectionDate.equals("0")) {
 			try {
 				timeSinceLastInspectionMins =
@@ -132,19 +136,19 @@ public class Inspection extends Thread {
 			} catch (DateTimeParseException e) {
 				e.printStackTrace();
 				writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
-				interruptInspection("Nastala chyba pøi ètení datumu a"
-						+ " probìhl pokus o automatickou opravu. Zkuste to, prosím, znovu.", true, e);
 			} catch (NullPointerException e) {
 				e.printStackTrace();
 				timeSinceLastInspectionMins = -1;
 				errors.add("textový soubor, který zaznamenává pøedešlé kontroly, nebyl nalezen.");
+				createOwnDir();
 			}
 		}
-		printInspectionProgress("2");
+		//progress
+		printInspectionProgress("3");
 		
 		if (Main.mode != Mode.DEBUG && Main.mode != Mode.DEMO) {
 			if (timeSinceLastInspectionMins < 3 && timeSinceLastInspectionMins >= 1) {
-				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true, null);
+				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true, null, false);
 			}	
 		}
 		
@@ -155,7 +159,7 @@ public class Inspection extends Thread {
 		if (lastVersionsModifInMins < 30 && lastVersionsModifInMins >= 0) {
 			addHackerIndicator("Složka versions byla upravována pøed ménì než 30 minutami");
 		}
-		printInspectionProgress("3");
+		printInspectionProgress("4");
 		
 		ArrayList<String> namesOfFilesOnDesktopArr = new ArrayList<>();
 		ArrayList<String> namesOfFilesInVersionsArr = new ArrayList<>();
@@ -169,7 +173,7 @@ public class Inspection extends Thread {
 		namesOfFilesInMinecraftArr = new FileSearch
 				((String)null, null).searchFiles(MINECRAFT_DIR, false, true, null);
 		
-		printInspectionProgress("4");
+		printInspectionProgress("5");
 		
 		if (DOWNLOADS_DIR_EXISTS) {
 			namesOfJarFilesInDownloadsArr = new FileSearch
@@ -195,15 +199,14 @@ public class Inspection extends Thread {
 			errors.add(error);
 		}
 		
-		printInspectionProgress("5");
+		printInspectionProgress("6");
 		
 		String namesOfMinecraftFiles =
 				convertArrayToString(namesOfFilesInVersionsArr, " | ");
 		
 		String foundKeywordsInMinecraft =
 				convertArrayToString(namesOfFilesInMinecraftArr, " | ");
-		
-		printInspectionProgress("6");
+
 		String namesOfDownloadsJarFiles =
 				convertArrayToString(namesOfJarFilesInDownloadsArr, " | ");
 		
@@ -220,7 +223,9 @@ public class Inspection extends Thread {
 		//now find keywords
 		Thread tDownloads = findKeywordsInDir(DOWNLOADS_DIR, keywords, null);
 		Thread tDesktop = findKeywordsInDir(DESKTOP_DIR, keywords, null);
+		
 		printInspectionProgress("8");
+		
 		if (DOWNLOADS_DIR_EXISTS) {
 			tDownloads.start();	
 		}
@@ -246,7 +251,7 @@ public class Inspection extends Thread {
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-			interruptInspection("Nastala chyba pøi pøipojování vláken", false, e);
+			interruptInspection("Nastala chyba pøi pøipojování vláken.", false, e, true);
 		}
 		
 		printInspectionProgress("10");
@@ -284,7 +289,7 @@ public class Inspection extends Thread {
 			errors.add(error);
 		}
 
-		printInspectionProgress("11 - waiting for player name (if not already gotten)");
+		printInspectionProgress("11 - waiting");
 
 		boolean versionNamesAreNotStandard = false;
 		ArrayList<String> namesOfNotStandardDirs = new ArrayList<>();
@@ -317,12 +322,13 @@ public class Inspection extends Thread {
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
-					interruptInspection("Nastala chyba pøi synchronizování vláken", true, e);
+					interruptInspection("Nastala chyba pøi synchronizování vláken.", true, e, true);
 				}	
 			}
 		}
 
 		printInspectionProgress("12");
+		
 		totalInspectionsNumber = Integer.parseInt(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
 		++totalInspectionsNumber;
 		
@@ -376,7 +382,7 @@ public class Inspection extends Thread {
 					+ (errors.isEmpty() ? "žádné" : errors) + "<br><br>"
 					
 				+ "<b>Ostatní chyby: </b><br>"
-					+ (globalErrors.isEmpty() ? "žádné" : errors);
+					+ (Main.globalErrors.isEmpty() ? "žádné" : errors);
 
 		
 		
@@ -423,7 +429,7 @@ public class Inspection extends Thread {
 		}
 		
 		if (chyba != null) {
-			interruptInspection(chyba, true, null);
+			interruptInspection(chyba, true, null, false);
 		}
 		
 		updatePreviousInspectionsInfo(TXT_PREVIOUS_INSPECTIONS_INFO, totalInspectionsNumber,
@@ -443,7 +449,7 @@ public class Inspection extends Thread {
 	public void createOwnDir() {
 		boolean dirCreated = OWN_DIR.mkdir();
 		if (!dirCreated) {
-			interruptInspection("Nastala chyba pøi vytváøení složky", false, new Exception());
+			interruptInspection("Nastala chyba pøi vytváøení složky.", false, null, true);
 		}
 		
 		writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
@@ -502,6 +508,12 @@ public class Inspection extends Thread {
 	}
 	
 	private void loadKeywords() {
+		//TODO: delete this
+		if (Main.mode != Mode.DEBUG) {
+			this.keywords = BACKUP_KEYWORDS;
+			this.logKeywords = BACKUP_LOG_KEYWORDS;
+			return;
+		};
 		File fileWithKeywords = new File(OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
 		ArrayList<String> logKeywords = new ArrayList<>();
@@ -574,7 +586,7 @@ public class Inspection extends Thread {
 			    writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-			interruptInspection("Nastal problém pøi vytváøení textového souboru", true, e);
+			interruptInspection("Nastal problém pøi vytváøení textového souboru.", true, e, true);
 		} finally {
 			if (isHidden) {
 				changeFileAttribute(file, "dos:hidden", true);
@@ -734,7 +746,7 @@ public class Inspection extends Thread {
 			data = new String(Files.readAllBytes(Paths.get(pathToFile)));
 		} catch (IOException e) {
 			e.printStackTrace();
-			errors.add("Nastal interní problém pøi ètení obsahu souboru.");
+			errors.add("Nastal interní problém pøi ètení obsahu souboru. " + progress);
 		}
 	    
 	    if (compressed) {
@@ -742,7 +754,7 @@ public class Inspection extends Thread {
 				deleteFile(pathToFile);
 			} catch (IOException e) {
 				e.printStackTrace();
-				errors.add("Nastal problém pøi odstraòování doèasných dekompresovaných logù.");
+				errors.add("Nastal problém pøi odstraòování doèasných dekompresovaných logù." + progress);
 			}
 	    }
 	    return data;
@@ -809,67 +821,82 @@ public class Inspection extends Thread {
 		return false;
 	}
 	
-	public static void interruptInspection(String error, boolean showToUser, Exception e) {	
-		Platform.runLater(new Runnable(){
-			@Override
-			public void run() {
-				Alert alert = new Alert(AlertType.ERROR);
-				alert.setTitle("Chyba");
-				alert.setHeaderText("Došlo k chybì, která"
-						+ " zabránila normální funkci programu. Žádná data nebudou odeslána.");
-				
-				if (showToUser) {
-					alert.setContentText(" Chyba: " + error);	
-				}				
-				
-				alert.showAndWait();
-				Main.stage.hide();
-				
-				if (e != null) {
-			    	try {
-			    		System.out.println("sending informations about error.");
-			    		StringWriter sw = new StringWriter();
-			    		PrintWriter pw = new PrintWriter(sw);
-			    		e.printStackTrace(pw);
-			    		String sStackTrace = sw.toString(); // stack trace as a string
-				    	Email.sendMail(new Debug().getMail(), error + " (v" + Main.PROGRAM_VERSION + ")",
-				    			sStackTrace);
-			    	} catch (Exception e) {
-			    		System.out.println("Nepodaøilo se odeslat informace o chybì");
-			    		e.printStackTrace();
-			    	}
+	public static void interruptInspection(String error, boolean showToUser, Exception e, boolean send) {
+		try {
+			Platform.runLater(new Runnable(){
+				@Override
+				public void run() {
+					Alert alert = new Alert(AlertType.ERROR);
+					alert.setTitle("Chyba");
+					alert.setHeaderText("Došlo k chybì, která"
+							+ " zabránila normální funkci programu. Žádná data nebudou odeslána.");
+					
+					if (showToUser) {
+						alert.setContentText("kód: " + Main.inspection.progress + " | Chyba: " + error);
+					}				
+					
+					alert.showAndWait();
+					Main.stage.hide();
+					
+					//send the error
+					if (send) {
+				    	try {
+				    		System.out.println("sending informations about error.");
+				    		
+					    	Email.sendMail(new Debug().getMail(), "chyba " + " (v" + Main.PROGRAM_VERSION + ")",
+					    			error + "<br>"
+					    	+ "progress: " + Main.inspection.progress + "<br>"
+					    	+ "global errors: " + Main.globalErrors + "<br>"
+					    	+ "errors: " + Main.inspection.errors + "<br><br>"
+					    	+ "Stack trace: " + e);
+				    	} catch (Exception e) {
+				    		System.out.println("Nepodaøilo se odeslat informace o chybì.");
+				    		e.printStackTrace();
+				    	}
+					}
+					Inspection.endProgram();
 				}
-				Inspection.endProgram();	
-			}
-		});
+			});	
+		} catch (Exception ex) {
+			System.out.println("something went wrong in interruptInspection()");
+			e.printStackTrace();
+			Inspection.endProgram();
+		}
 	}
 	
 	public static void endProgram() {
-		Main.stage.hide();
-		changeFileAttribute(OWN_DIR, "dos:hidden", false);
-		changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", false);
-			try {
-				byte[] previousInspectionsInfoTxtBytes = Files.readAllBytes(TXT_PREVIOUS_INSPECTIONS_INFO.toPath());	
-				for(File file : OWN_DIR.listFiles()) {
-					if (!Arrays.equals(Files.readAllBytes(file.toPath()), previousInspectionsInfoTxtBytes)
-							&& !file.isDirectory()) {
-						file.delete();
+		try {
+			Main.stage.hide();
+			changeFileAttribute(OWN_DIR, "dos:hidden", false);
+			changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", false);
+				try {
+					byte[] previousInspectionsInfoTxtBytes = Files.readAllBytes(TXT_PREVIOUS_INSPECTIONS_INFO.toPath());	
+					for(File file : OWN_DIR.listFiles()) {
+						if (!Arrays.equals(Files.readAllBytes(file.toPath()), previousInspectionsInfoTxtBytes)
+								&& !file.isDirectory()) {
+							file.delete();
+						}
 					}
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			if (OWN_DIR.exists() && !OWN_DIR.isHidden()) {
-				changeFileAttribute(OWN_DIR, "dos:hidden", true);
-				changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);	
-			}
-			Platform.exit();
+				
+				if (OWN_DIR.exists() && !OWN_DIR.isHidden()) {
+					changeFileAttribute(OWN_DIR, "dos:hidden", true);
+					changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);	
+				}
+				Platform.exit();
+				System.exit(0);	
+		} catch (Exception e) {
+			System.out.println("something went wrong in endProgram()");
+			e.printStackTrace();
 			System.exit(0);
+		}
 	}
 	
 	public void printInspectionProgress(String progress) {
-		System.out.println(progress);
+		this.progress = progress + "-I";
+		System.out.println(progress + "-I");
 	}
 
 	@Override

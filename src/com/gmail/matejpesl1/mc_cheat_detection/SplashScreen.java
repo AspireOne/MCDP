@@ -30,7 +30,7 @@ public class SplashScreen extends JWindow implements Runnable {
         setBounds(x, y, width, height);
          
         JLabel logo = new JLabel(new ImageIcon(resourceURL));
-        JLabel copyright =  new JLabel("© 2019 Matìj Pešl<matejpesl1@gmail.com>, All rights reserved.", JLabel.CENTER);
+        JLabel copyright =  new JLabel("© 2020 Matìj Pešl<matejpesl1@gmail.com>, All rights reserved.", JLabel.CENTER);
         
         copyright.setFont(new Font("Sans-Serif", Font.ITALIC, 11));
         panel.add(copyright, BorderLayout.SOUTH);
