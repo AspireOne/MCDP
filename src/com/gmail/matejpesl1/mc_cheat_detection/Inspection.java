@@ -146,7 +146,7 @@ public class Inspection extends Thread {
 		//progress
 		printInspectionProgress("3");
 		
-		if (Main.mode != Mode.DEBUG && Main.mode != Mode.DEMO) {
+		if (Main.mode != Mode.DEBUG) {
 			if (timeSinceLastInspectionMins < 3 && timeSinceLastInspectionMins >= 1) {
 				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true, null, false);
 			}	
@@ -289,7 +289,7 @@ public class Inspection extends Thread {
 			errors.add(error);
 		}
 
-		printInspectionProgress("11 - waiting");
+		printInspectionProgress("11W");
 
 		boolean versionNamesAreNotStandard = false;
 		ArrayList<String> namesOfNotStandardDirs = new ArrayList<>();
@@ -435,7 +435,7 @@ public class Inspection extends Thread {
 		updatePreviousInspectionsInfo(TXT_PREVIOUS_INSPECTIONS_INFO, totalInspectionsNumber,
 				LocalDateTime.now().format(FORMATTER));
 		
-		printInspectionProgress("14 - FINAL");
+		printInspectionProgress("14F");
 		
 		Platform.runLater(new Runnable(){
 			@Override

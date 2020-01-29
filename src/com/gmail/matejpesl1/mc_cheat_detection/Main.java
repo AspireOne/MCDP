@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 import com.gmail.matejpesl1.mc_cheat_detection.Inspection;
 import com.gmail.matejpesl1.servers.Basicland;
 import com.gmail.matejpesl1.servers.Debug;
-import com.gmail.matejpesl1.servers.Demo;
 import com.gmail.matejpesl1.servers.Server;
 
 import javafx.application.Application;
@@ -48,9 +47,9 @@ import javafx.scene.text.TextAlignment;
 
 
 	public class Main extends Application {
-	public static enum Mode {DEBUG, DEMO, BASICLAND};
+	public static enum Mode {DEBUG, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.7f;
+	public static final float PROGRAM_VERSION = 3.8f;
 	
 	private static final int W_WIDTH = 510;
 	private static final int W_HEIGHT = 210;
@@ -215,9 +214,6 @@ import javafx.scene.text.TextAlignment;
 			} break;
 			case BASICLAND: {
 				currentServer = new Basicland();
-			} break;
-			case DEMO: {
-				currentServer = new Demo();
 			} break;
 		}
 		return currentServer;
