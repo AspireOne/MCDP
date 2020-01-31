@@ -262,8 +262,8 @@ public class Inspection extends Thread {
 		if (LOGS_DIR_EXISTS) {
 			for (String pathToLog : pathsToLogs) {
 				if (getDateDiff(LocalDateTime.now().format(FORMATTER),
-						getLastModificationDate
-						(new File(pathToLog)), TimeUnit.DAYS) < MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
+						getLastModificationDate(new File(pathToLog)),
+						TimeUnit.DAYS) < MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
 					if (new File(pathToLog).getName().contains("debug")) {
 						continue;
 					}
@@ -508,12 +508,12 @@ public class Inspection extends Thread {
 	}
 	
 	private void loadKeywords() {
-		//TODO: delete this
-		if (Main.mode != Mode.DEBUG) {
+		if (Main.mode == Mode.DEBUG && !Main.DOWNLOAD_FILES_IN_DEBUG) {
 			this.keywords = BACKUP_KEYWORDS;
 			this.logKeywords = BACKUP_LOG_KEYWORDS;
 			return;
 		};
+		System.out.println("loadKeywords outside of if (Main == download files in debug statement");
 		File fileWithKeywords = new File(OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
 		ArrayList<String> logKeywords = new ArrayList<>();

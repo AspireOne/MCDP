@@ -47,11 +47,15 @@ public class SplashScreen extends JWindow implements Runnable {
             } finally {
                 close();
             }
+            
         } else {
         	synchronized (this) {
         		try {
         			wait();
         		} catch (InterruptedException e) {
+        			e.printStackTrace();
+        			System.out.println("interrupted - SplashScreen");
+        		} finally {
         			close();
         		}
         	}	

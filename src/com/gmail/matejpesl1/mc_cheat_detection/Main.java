@@ -58,16 +58,16 @@ import javafx.scene.text.TextAlignment;
 	private static final int IMGS_OFFSET = 100;
 	private static final int LOGO_SIZE = IMG_SIZE + 50;
 	
+	public static final int MAX_NAME_LENGTH = 16;
+	public static final int MIN_NAME_LENGTH = 3;
+	public static final Pattern UNALLOWED_NAME_CHARACTERS = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
+	
 	public static ImageView checkMark;
 	public static ImageView xMark;
 	public static ImageView exit;
 	public static ImageView programLogo;
 	public static ImageView retry;
 	public static ImageView updateArrow;
-	
-	public static final Pattern UNALLOWED_NAME_CHARACTERS = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
-	public static final int MAX_NAME_LENGTH = 16;
-	public static final int MIN_NAME_LENGTH = 3;
 	
 	private static boolean inspectionRunning = false;
 	public static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
@@ -77,6 +77,8 @@ import javafx.scene.text.TextAlignment;
 	private Server currentServer;
 	private boolean updateAvailable;
 	private boolean splashIsShown;
+	public static final boolean DOWNLOAD_FILES_IN_DEBUG = false;
+	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.140, 0.925,0.95);
 	
 	public static void main(String[] args) {
 		setUncatchedExceptionHandler();
@@ -127,14 +129,16 @@ import javafx.scene.text.TextAlignment;
 		
 			try {
 				updateManagerTemp = new UpdateManager(this);
-				updateAvailable = updateManagerTemp.checkUpdateAvailability();
+				if (!(mode == Mode.DEBUG && !DOWNLOAD_FILES_IN_DEBUG)) {
+					updateAvailable = updateManagerTemp.checkUpdateAvailability();	
+				}
 			} catch (URISyntaxException e) {
 				String error = "Cesta k programu není správná.";
 				handleErrorInUpdateProcess(error, e);
 			} catch (MalformedURLException e) {
 				String error = "Nelze naèíst odkazy na soubory.";
 				handleErrorInUpdateProcess(error, e);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				String error = "Nelze stáhnout soubor s nejnovìjší verzí programu.";
 				handleErrorInUpdateProcess(error, e);
 			}
@@ -146,6 +150,7 @@ import javafx.scene.text.TextAlignment;
 		if (splashIsShown) {
 			synchronized(tSplash) {
 				tSplash.interrupt();
+				System.out.println("tried to interrup from Main");
 			}
 			splashIsShown = false;
 		}
@@ -423,7 +428,7 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	private Background getDefaultBackground() {
-		BackgroundFill defaultBackgroundFill = new BackgroundFill(Color.BLUEVIOLET, new CornerRadii(1),
+		BackgroundFill defaultBackgroundFill = new BackgroundFill(BACKGROUND_COLOR, new CornerRadii(1),
 				new Insets(0.0,0.0,0.0,0.0));
 		
 		return new Background(defaultBackgroundFill);

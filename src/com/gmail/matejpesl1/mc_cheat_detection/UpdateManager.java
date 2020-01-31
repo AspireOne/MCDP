@@ -32,7 +32,7 @@ public class UpdateManager {
 		}
 	}
 	
-	private float getNewestVerNum() throws IOException {
+	private float getNewestVerNum() throws Exception {
 		download(newestVerNumUrl, NEWEST_VER_NUM_FILE.getPath());
 		float newestVerNum = 
 				Float.parseFloat
@@ -81,7 +81,7 @@ public class UpdateManager {
 	    }
 	}
 	
-	public boolean checkUpdateAvailability() throws IOException {
+	public boolean checkUpdateAvailability() throws Exception {
 		if (newestVerNum == 0) {
 			newestVerNum = getNewestVerNum();
 		}
