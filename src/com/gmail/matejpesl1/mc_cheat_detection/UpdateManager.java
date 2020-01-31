@@ -36,9 +36,7 @@ public class UpdateManager {
 		download(newestVerNumUrl, NEWEST_VER_NUM_FILE.getPath());
 		float newestVerNum = 
 				Float.parseFloat
-				(new Inspection(null)
-						.convertLogContentToString
-						(NEWEST_VER_NUM_FILE.getPath()));
+				(new Inspection(null).convertFileContentToString(NEWEST_VER_NUM_FILE));
 		NEWEST_VER_NUM_FILE.delete();
 		return newestVerNum;
 	}

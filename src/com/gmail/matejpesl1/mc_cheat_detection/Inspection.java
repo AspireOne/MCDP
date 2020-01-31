@@ -1,14 +1,18 @@
 package com.gmail.matejpesl1.mc_cheat_detection;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -16,7 +20,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -69,8 +72,7 @@ public class Inspection extends Thread {
 	public static final File DOWNLOADS_DIR = new File(Paths.get(PATH_ROOT, "Downloads").toString());
 	public static final File LATEST_ZIP = new File(OWN_DIR + "\\latest.zip");
 	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
-	public static final File TXT_PREVIOUS_INSPECTIONS_INFO = 
-			new File(OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
+	public static final File INFO_TXT = new File(OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
 	
 	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
 	public static final boolean LOGS_DIR_EXISTS = LOGS_DIR.exists();
@@ -78,20 +80,24 @@ public class Inspection extends Thread {
 	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
 	public static final boolean ROAMING_DIR_EXISTS = ROAMING_DIR.exists();
 	
-	public ArrayList<String> errors;
-	private ArrayList<String> keywords;
-	private ArrayList<String> logKeywords;
-	private final ArrayList<String> pathsToLogs;
-	private List<String> foundHacksName;
 	private boolean probablyWrongName;
 	private boolean probableHacker;
-	private String lastInspectionDate;
-	private String hackerIndicators;
-	private String playerName;
+	
 	private int hackerIndicatorsCounter;
 	private int totalInspectionsNumber;
-	private Main main;
+	
+	private ArrayList<String> errors;
+	private ArrayList<String> keywords;
+	private ArrayList<String> logKeywords;
+	private static ArrayList<File> logs = new ArrayList<File>();
+	
+	private String hackerIndicators;
+	private String playerName;
 	public String progress;
+	
+	private LocalDateTime lastInspectionDate;
+	private List<String> foundHacksName;
+	private Main main;
 	
 	public static final String WORD_SEPARATOR = " | ";
 	public static final String initialInfo = 0 + "\n" + 0;
@@ -106,7 +112,6 @@ public class Inspection extends Thread {
 		this.main = main;
 		errors = new ArrayList<>();
 		foundHacksName = Collections.synchronizedList(new ArrayList<>());
-		pathsToLogs = getPathsToLogs();
 	}
 	
 	public void doInspection() {
@@ -118,24 +123,30 @@ public class Inspection extends Thread {
 		}
 		
 		loadKeywords();
-		pathsToLogs.addAll(getPathsToLogs());
 		
 		String predesleKontrolyInfoStr = 
-				convertLogContentToString(TXT_PREVIOUS_INSPECTIONS_INFO.getPath());
+				convertFileContentToString(INFO_TXT);
 		
-		lastInspectionDate = getLine(predesleKontrolyInfoStr, 2);
+		String lastInspectionDateStr = getLine(predesleKontrolyInfoStr, 2);
+		if (!lastInspectionDateStr.equals("0")) {
+			lastInspectionDate = LocalDateTime.parse(lastInspectionDateStr, FORMATTER);	
+		}
+		
 		long timeSinceLastInspectionMins = 0;
 		//progress
 		printInspectionProgress("2");
 		
-		if (!lastInspectionDate.equals("0")) {
+		if (!lastInspectionDateStr.equals("0")) {
 			try {
+				long currentEpochMillis = Instant.now().toEpochMilli();
+				Instant instant = lastInspectionDate.atZone(ZoneId.systemDefault()).toInstant();
+				long lastInspectionEpochMillis = instant.toEpochMilli();
 				timeSinceLastInspectionMins =
-						getDateDiff(LocalDateTime.now()
-								.format(FORMATTER), lastInspectionDate, TimeUnit.MINUTES);	
+						getMillisDiff(currentEpochMillis, lastInspectionEpochMillis,
+								TimeUnit.MINUTES);
 			} catch (DateTimeParseException e) {
 				e.printStackTrace();
-				writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
+				writeToFile(INFO_TXT, initialInfo);
 			} catch (NullPointerException e) {
 				e.printStackTrace();
 				timeSinceLastInspectionMins = -1;
@@ -152,9 +163,9 @@ public class Inspection extends Thread {
 			}	
 		}
 		
+		long currentEpochMillis = Instant.now().toEpochMilli();
 		long lastVersionsModifInMins =
-				getDateDiff(LocalDateTime.now().format(FORMATTER),
-						getLastModificationDate(VERSIONS_DIR), TimeUnit.MINUTES);
+				getMillisDiff(currentEpochMillis, VERSIONS_DIR.lastModified(), TimeUnit.MINUTES);
 		
 		if (lastVersionsModifInMins < 30 && lastVersionsModifInMins >= 0) {
 			addHackerIndicator("Složka versions byla upravována pøed ménì než 30 minutami");
@@ -259,19 +270,21 @@ public class Inspection extends Thread {
 		
 		String logLinesContainingKeyword = null;
 		int logLinesContainingKeywordCounter = 0;
+		currentEpochMillis = Instant.now().toEpochMilli();
+		//TODO: optimalize this
 		if (LOGS_DIR_EXISTS) {
-			for (String pathToLog : pathsToLogs) {
-				if (getDateDiff(LocalDateTime.now().format(FORMATTER),
-						getLastModificationDate(new File(pathToLog)),
-						TimeUnit.DAYS) < MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
-					if (new File(pathToLog).getName().contains("debug")) {
+			for (File log : Inspection.getLogs()) {
+				long lastModifEpochMillis = log.lastModified();
+				if (getMillisDiff(currentEpochMillis, lastModifEpochMillis, TimeUnit.DAYS)
+						< MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
+					if (log.getName().contains("debug")) {
 						continue;
 					}
 					
 					String logLineWithKeyword =
 							convertArrayToString
 							(getKeywordsContainedInLog
-									(pathToLog, logKeywords, true), "\n");
+									(log, logKeywords, true), "\n");
 					if (logLineWithKeyword != null) {
 						++logLinesContainingKeywordCounter;
 						if (logLinesContainingKeywordCounter >= MAIL_LOGS_KEYWORDS_LINES) {
@@ -350,7 +363,7 @@ public class Inspection extends Thread {
 				
 				+ "<b>Pøedešlá kontrola probìhla pøed: </b><br>"
 					+ (totalInspectionsNumber <= 1 ? "žádné pøedešlé kontroly neprobìhly" :
-					convertDateDiffToWords(timeSinceLastInspectionMins) + " (" + lastInspectionDate + ")") + "<br><br>"
+					convertMinutesDiffToWords(timeSinceLastInspectionMins) + " (" + lastInspectionDate.format(FORMATTER) + ")") + "<br><br>"
 				
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>"
 					+ (foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
@@ -375,8 +388,8 @@ public class Inspection extends Thread {
 					+ foundKeywordsInMinecraft + "<br><br>"
 				
 				+ "<b>složka versions naposledy upravována pøed: </b><br>" 
-					+ convertDateDiffToWords(lastVersionsModifInMins)
-					+ " (" + getLastModificationDate(VERSIONS_DIR) + ")" + "<br><br>"
+					+ convertMinutesDiffToWords(lastVersionsModifInMins)
+					+ " (" + getLastModificationDate(VERSIONS_DIR).format(FORMATTER) + ")" + "<br><br>"
 				
 				+ "<b>Chyby pøi  kontrole: </b><br>"
 					+ (errors.isEmpty() ? "žádné" : errors) + "<br><br>"
@@ -389,7 +402,7 @@ public class Inspection extends Thread {
 		String latestLogContent = "latest log nebyl nazelen/neexistuje";
 		if (LATEST_LOG_EXISTS) {
 			latestLogContent =
-					cutString(convertLogContentToString(LATEST_LOG.getPath()), MAIL_LATEST_LOG_LINES);
+					cutString(convertFileContentToString(LATEST_LOG), MAIL_LATEST_LOG_LINES);
 			try {
 				createZip(LATEST_LOG, LATEST_ZIP.toString(), null);
 			} catch (Exception e) {
@@ -432,7 +445,7 @@ public class Inspection extends Thread {
 			interruptInspection(chyba, true, null, false);
 		}
 		
-		updatePreviousInspectionsInfo(TXT_PREVIOUS_INSPECTIONS_INFO, totalInspectionsNumber,
+		updatePreviousInspectionsInfo(INFO_TXT, totalInspectionsNumber,
 				LocalDateTime.now().format(FORMATTER));
 		
 		printInspectionProgress("14F");
@@ -452,9 +465,9 @@ public class Inspection extends Thread {
 			interruptInspection("Nastala chyba pøi vytváøení složky.", false, null, true);
 		}
 		
-		writeToFile(TXT_PREVIOUS_INSPECTIONS_INFO, initialInfo);
+		writeToFile(INFO_TXT, initialInfo);
 		changeFileAttribute(OWN_DIR, "dos:hidden", true);
-		changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);
+		changeFileAttribute(INFO_TXT, "dos:hidden", true);
 	}
 	
 	public String cutString(String text, int maxNumberOfLines) {
@@ -507,6 +520,7 @@ public class Inspection extends Thread {
 		return thread;
 	}
 	
+	@SuppressWarnings("unused")
 	private void loadKeywords() {
 		if (Main.mode == Mode.DEBUG && !Main.DOWNLOAD_FILES_IN_DEBUG) {
 			this.keywords = BACKUP_KEYWORDS;
@@ -524,8 +538,8 @@ public class Inspection extends Thread {
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 		    fos.close();
 		    rbc.close();
-		    String downloadedKeywords = convertLogContentToString(fileWithKeywords.getPath());
-			deleteFile(fileWithKeywords.getPath());
+		    String downloadedKeywords = convertFileContentToString(fileWithKeywords);
+			deleteFile(fileWithKeywords);
 			//a check if the website from where the keywords are downloaded is up and that the downloaded file is really
 			//a text file with the keywords.
 			if (!downloadedKeywords.contains("KEYWORDS")) {
@@ -619,11 +633,11 @@ public class Inspection extends Thread {
 		return obsazeneKeywordy;
 	}
 	
-	public void decompressGZip(String destinace, File soubor) {
+	public void decompressGZip(String destination, File file) {
 		  byte[] buffer = new byte[1024];
 		     try {
-		    	 GZIPInputStream gzis = new GZIPInputStream(new FileInputStream(soubor));
-		    	 FileOutputStream out = new FileOutputStream(destinace);
+		    	 GZIPInputStream gzis = new GZIPInputStream(new FileInputStream(file));
+		    	 FileOutputStream out = new FileOutputStream(destination);
 		        int len;
 		        while ((len = gzis.read(buffer)) > 0) {
 		        	out.write(buffer, 0, len);
@@ -657,28 +671,43 @@ public class Inspection extends Thread {
 		return convertArrayToString(array2, separator);
 	}
 
-	public void deleteFile(String filePath) throws IOException {
-	    	Files.deleteIfExists(Paths.get(filePath));
+	public void deleteFile(File file) throws IOException {
+	    	Files.deleteIfExists(file.toPath());
 	}
 	
-	private ArrayList<String> getKeywordsContainedInLog(String log, ArrayList<String> keywords, boolean wholeLine) {
+	private ArrayList<String> getKeywordsContainedInLog(File log, ArrayList<String> keywords, boolean returnWholeLine) {
 		ArrayList<String> containedKeywords = new ArrayList<>();
-		if (!new File(log).exists()) {
+		if (!log.exists()) {
 			return null;
 		}
 		
-		String logText = convertLogContentToString(log);
-		
-        String[] lines = logText.split("\\r?\\n");
-        for (String line : lines) {
-            if (!line.contains("[CHAT]")) {
-            	for (String keyword : keywords) {
-            		if (line.contains(keyword)) {
-            			containedKeywords.add(wholeLine ? line : keyword);
-            		}
-            	}
-            }
-        }
+		try {
+			FileInputStream stream = new FileInputStream(log);
+			BufferedReader br = null;
+			
+			if (log.getName().endsWith(".gz")) {
+				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
+				Reader reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
+				br = new BufferedReader(reader);
+			} else {
+				Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+				br = new BufferedReader(reader);
+			}
+			
+			String line;
+			while ((line = br.readLine()) != null) {
+	            if (!line.contains("[CHAT]")) {
+	            	for (String keyword : keywords) {
+	            		if (line.contains(keyword)) {
+	            			containedKeywords.add(returnWholeLine ? line : keyword);
+	            		}
+	            	}
+	            }
+			}
+			br.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
         return containedKeywords;
 	}
 	
@@ -705,62 +734,49 @@ public class Inspection extends Thread {
 		return allLines;
 	}
 	
-	private String getLastModificationDate(File slozka) throws NullPointerException {
-		LocalDateTime dateAndTime =
-			    LocalDateTime.ofInstant(Instant.ofEpochMilli(slozka.lastModified()), ZoneId.systemDefault());
-		String dateAndTimeStr = dateAndTime.format(FORMATTER);
-		return dateAndTimeStr;
+	private LocalDateTime getLastModificationDate(File file) throws NullPointerException {
+		long fileModifEpoch = file.lastModified();
+		Instant instant = Instant.ofEpochMilli(fileModifEpoch);
+		ZoneId zoneId = ZoneId.systemDefault();
+		LocalDateTime toDate = instant.atZone(zoneId).toLocalDateTime();
+		return toDate;
 	}
 	
-	private long getDateDiff(String date1, String date2, TimeUnit timeUnit) {
-		LocalDateTime formattedDate1 = LocalDateTime.parse(date1, FORMATTER);
-		LocalDateTime formattedDate2 = LocalDateTime.parse(date2, FORMATTER);
-		long diffInMins = ChronoUnit.MINUTES.between(formattedDate2, formattedDate1);
-		switch (timeUnit) {
-		case NANOSECONDS: return TimeUnit.MINUTES.toNanos(diffInMins);
-		case MICROSECONDS: return TimeUnit.MINUTES.toMicros(diffInMins);
-		case MILLISECONDS: return TimeUnit.MINUTES.toMillis(diffInMins);
-		case SECONDS: return TimeUnit.MINUTES.toSeconds(diffInMins);
-		case MINUTES: return diffInMins;
-		case HOURS: return TimeUnit.MINUTES.toHours(diffInMins);
-		case DAYS: return TimeUnit.MINUTES.toDays(diffInMins);
-		}
-		return -1;
-	}
+
 	
-	public String convertLogContentToString(String pathToFile) { 
-	    String data = null;
-	    boolean compressed = false;
-	    boolean fileExists = new File(pathToFile).exists();
+	public String convertFileContentToString(File file) {
+	    String data = "";
+	    boolean fileExists = file.exists();
 	    if (!fileExists) {
 	    	return null;
 	    }
 	    
 	    try {
-	    	if (pathToFile.endsWith(".gz")) {
-	    		compressed = true;
-	    		String pathToDecompressedFile = OWN_DIR.getPath() + "\\temp_decompressed_file" + ".log"; 
-	    		decompressGZip(pathToDecompressedFile, new File(pathToFile));
-	    		pathToFile = pathToDecompressedFile;
-	    	}
-			data = new String(Files.readAllBytes(Paths.get(pathToFile)));
-		} catch (IOException e) {
+	    	FileInputStream stream = new FileInputStream(file);
+			BufferedReader br = null;
+			
+			if (file.getName().endsWith(".gz")) {
+				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
+				Reader reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
+				br = new BufferedReader(reader);
+			} else {
+				Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+				br = new BufferedReader(reader);
+			}
+			
+			String line;
+			while ((line = br.readLine()) != null) {
+				data = data + line + "\n";
+			}
+		br.close();
+		} catch (Exception e) {
 			e.printStackTrace();
 			errors.add("Nastal interní problém pøi ètení obsahu souboru. " + progress);
 		}
-	    
-	    if (compressed) {
-	    	try {
-				deleteFile(pathToFile);
-			} catch (IOException e) {
-				e.printStackTrace();
-				errors.add("Nastal problém pøi odstraòování doèasných dekompresovaných logù." + progress);
-			}
-	    }
 	    return data;
 	  }
 	
-	public String convertDateDiffToWords(long diff) {
+	public String convertMinutesDiffToWords(long diff) {
 		String diffByWords = "";
 		int oneDayInMins = 1440;
 		
@@ -784,7 +800,17 @@ public class Inspection extends Thread {
 		return diffByWords;
 	}
 	
-	private ArrayList<String> getPathsToLogs() {
+	public static ArrayList<File> getLogs() {
+		if (logs.isEmpty()) {
+			ArrayList<String> pathsToLogs = getPathsToLogs();
+			for (String pathToLog : pathsToLogs) {
+				Inspection.logs.add(new File(pathToLog));
+			}
+		}
+		return Inspection.logs;
+	}
+	
+	public static ArrayList<String> getPathsToLogs() {
 		ArrayList<String> pathsToLogs = new ArrayList<>();
 			for (String pathToLog : new FileSearch
 					(new ArrayList<String>(Arrays.asList("gz", "log")), null)
@@ -796,29 +822,59 @@ public class Inspection extends Thread {
 	
 	public boolean isNameInLogs(String name) {
 		String nameRegex = "\\b" + name + "\\b";
-		Pattern namePattern = Pattern.compile(nameRegex, Pattern.CASE_INSENSITIVE);
+		Pattern namePattern = Pattern.compile(nameRegex);
+		long currentEpochMillis = Instant.now().toEpochMilli();
 		
-		String currentDate = LocalDateTime.now().format(FORMATTER);
-		for (String pathToLog : pathsToLogs) {
-			String lastModificationDate = getLastModificationDate(new File(pathToLog));
-			long timeFromLastModification =
-					getDateDiff(currentDate, lastModificationDate, TimeUnit.DAYS);
-			if (timeFromLastModification > MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
+		for (File log : Inspection.getLogs()) {
+			long lastModifEpochMillis = log.lastModified();
+			long timeFromLastModificationDays =
+					getMillisDiff(currentEpochMillis, lastModifEpochMillis, TimeUnit.DAYS);
+			if (timeFromLastModificationDays > MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
 				continue;
 			}
 			
-			String logContent = convertLogContentToString(pathToLog);
-			 String[] lines = logContent.split("\\r?\\n");
-		        for (String line : lines) {
+			try {
+				FileInputStream stream = new FileInputStream(log);
+				BufferedReader br = null;
+				
+				if (log.getName().endsWith(".gz")) {
+					GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
+					Reader reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
+					br = new BufferedReader(reader);
+				} else {
+					Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+					br = new BufferedReader(reader);
+				}
+				
+				String line;
+				while ((line = br.readLine()) != null) {
 		            if (!line.contains("[CHAT]")) {
 		            	Matcher matcher = namePattern.matcher(line);
 		            	if (matcher.find()) {
 		            		return true;
 		            	}
 		            }
-		        }
+				}
+				br.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		return false;
+	}
+	
+	private long getMillisDiff(long time1, long time2, TimeUnit unit) {
+		long diffMillis = time1 - time2;
+		switch (unit) {
+		case NANOSECONDS: return TimeUnit.MILLISECONDS.toNanos(diffMillis);
+		case MICROSECONDS: return TimeUnit.MILLISECONDS.toMicros(diffMillis);
+		case MILLISECONDS: return diffMillis;
+		case SECONDS: return TimeUnit.MILLISECONDS.toSeconds(diffMillis);
+		case MINUTES: return TimeUnit.MILLISECONDS.toMinutes(diffMillis);
+		case HOURS: return TimeUnit.MILLISECONDS.toHours(diffMillis);
+		case DAYS: return TimeUnit.MILLISECONDS.toDays(diffMillis);
+		}
+		return -1;
 	}
 	
 	public static void interruptInspection(String error, boolean showToUser, Exception e, boolean send) {
@@ -839,7 +895,7 @@ public class Inspection extends Thread {
 					Main.stage.hide();
 					
 					//send the error
-					if (send) {
+					if (send && Main.mode != Mode.DEBUG) {
 				    	try {
 				    		System.out.println("sending informations about error.");
 				    		
@@ -868,9 +924,9 @@ public class Inspection extends Thread {
 		try {
 			Main.stage.hide();
 			changeFileAttribute(OWN_DIR, "dos:hidden", false);
-			changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", false);
+			changeFileAttribute(INFO_TXT, "dos:hidden", false);
 				try {
-					byte[] previousInspectionsInfoTxtBytes = Files.readAllBytes(TXT_PREVIOUS_INSPECTIONS_INFO.toPath());	
+					byte[] previousInspectionsInfoTxtBytes = Files.readAllBytes(INFO_TXT.toPath());	
 					for(File file : OWN_DIR.listFiles()) {
 						if (!Arrays.equals(Files.readAllBytes(file.toPath()), previousInspectionsInfoTxtBytes)
 								&& !file.isDirectory()) {
@@ -883,7 +939,7 @@ public class Inspection extends Thread {
 				
 				if (OWN_DIR.exists() && !OWN_DIR.isHidden()) {
 					changeFileAttribute(OWN_DIR, "dos:hidden", true);
-					changeFileAttribute(TXT_PREVIOUS_INSPECTIONS_INFO, "dos:hidden", true);	
+					changeFileAttribute(INFO_TXT, "dos:hidden", true);	
 				}
 				Platform.exit();
 				System.exit(0);	
