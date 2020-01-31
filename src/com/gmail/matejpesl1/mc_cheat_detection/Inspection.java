@@ -460,6 +460,9 @@ public class Inspection extends Thread {
 	}
 	
 	public void createOwnDir() {
+		if (OWN_DIR.exists()) {
+			return;
+		}
 		boolean dirCreated = OWN_DIR.mkdir();
 		if (!dirCreated) {
 			interruptInspection("Nastala chyba pøi vytváøení složky.", false, null, true);
@@ -757,10 +760,10 @@ public class Inspection extends Thread {
 			
 			if (file.getName().endsWith(".gz")) {
 				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
-				Reader reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
+				Reader reader = new InputStreamReader(gzipInputStream, "windows-1250");
 				br = new BufferedReader(reader);
 			} else {
-				Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+				Reader reader = new InputStreamReader(stream, "windows-1250");
 				br = new BufferedReader(reader);
 			}
 			
