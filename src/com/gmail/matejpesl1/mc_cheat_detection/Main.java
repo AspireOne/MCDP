@@ -49,7 +49,7 @@ import javafx.scene.text.TextAlignment;
 	public class Main extends Application {
 	public static enum Mode {DEBUG, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.85f;
+	public static final float PROGRAM_VERSION = 3.8f;
 	
 	private static final short W_WIDTH = 510;
 	private static final short W_HEIGHT = 210;
@@ -81,7 +81,6 @@ import javafx.scene.text.TextAlignment;
 	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.140, 0.925,0.95);
 	
 	public static void main(String[] args) {
-		System.out.println("start");
 		setUncatchedExceptionHandler();
 		launch(args);
 	}
@@ -132,7 +131,7 @@ import javafx.scene.text.TextAlignment;
 			try {
 				updateManagerTemp = new UpdateManager(this);
 				if (!(mode == Mode.DEBUG && !DOWNLOAD_FILES_IN_DEBUG)) {
-					updateAvailable = updateManagerTemp.checkUpdateAvailability();	
+					updateAvailable = updateManagerTemp.checkUpdateAvailability();
 				}
 			} catch (URISyntaxException e) {
 				String error = "Cesta k programu není správná.";
@@ -281,12 +280,14 @@ import javafx.scene.text.TextAlignment;
 		try {
 			updateManager.downloadUpdate();
 		} catch (Exception e) {
+			e.printStackTrace();
 			return "Nepodaøilo se stáhnout novou verzi.";
 		}
 		
 		try {
 			updateManager.update();	
 		} catch (Exception e) {
+			e.printStackTrace();
 			return "Proces aktualizace se nezdaøil.";
 		}
 		return null;

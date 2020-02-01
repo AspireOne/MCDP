@@ -79,6 +79,7 @@ public class Inspection extends Thread {
 	public static final boolean DESKTOP_DIR_EXISTS = DESKTOP_DIR.exists();
 	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
 	public static final boolean ROAMING_DIR_EXISTS = ROAMING_DIR.exists();
+	public static final boolean DOWNLOAD_KEYWORDS = false;
 	
 	private static final int MAX_INSPECTED_LOG_LINES = 70000;
 	private static final short MAX_INSPECTED_LOG_LINES_NAME = 500;
@@ -529,11 +530,13 @@ public class Inspection extends Thread {
 	
 	@SuppressWarnings("unused")
 	private void loadKeywords() {
-		if (Main.mode == Mode.DEBUG && !Main.DOWNLOAD_FILES_IN_DEBUG) {
+		if ((Main.mode == Mode.DEBUG && !Main.DOWNLOAD_FILES_IN_DEBUG) || !DOWNLOAD_KEYWORDS) {
 			this.keywords = BACKUP_KEYWORDS;
 			this.logKeywords = BACKUP_LOG_KEYWORDS;
 			return;
 		};
+		
+		System.out.println("downloading keywords");
 		File fileWithKeywords = new File(OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
 		ArrayList<String> logKeywords = new ArrayList<>();

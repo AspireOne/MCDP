@@ -6,11 +6,13 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.util.Scanner;
 
 public class UpdateManager {
 	private URL updateUrl;
-	private URL newestVerNumUrl;
+	private URL latestVerNumURL;
 	private final String thisProgramPath;
 	private float newestVerNum;
 	private boolean downloaded;
@@ -19,7 +21,7 @@ public class UpdateManager {
 	public static final File UPDATE_FILE = 
 			new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
 	public static final String LATEST_VER_NUM_URL_STR =
-			"https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp";
+			"https://api.github.com/repos/Aspire0ne/MCDP-downloads/tags";
 	private Main uvod;
 	
 	public UpdateManager(Main uvod) throws URISyntaxException, MalformedURLException {
@@ -32,26 +34,30 @@ public class UpdateManager {
 	}
 	
 	private float getNewestVerNum() throws Exception {
-		download(newestVerNumUrl, LATEST_VER_NUM_FILE.getPath());
-		float newestVerNum = 
-				Float.parseFloat
-				(new Inspection(null).convertFileContentToString(LATEST_VER_NUM_FILE));
-		LATEST_VER_NUM_FILE.delete();
-		return newestVerNum;
+		Scanner sc = new Scanner(latestVerNumURL.openStream(), "UTF-8");
+		String releaseInfo = sc.useDelimiter("\\A").next();
+		sc.close();
+		int numBeginChar = releaseInfo.indexOf("\"v") + 2;
+		int numEndChar = releaseInfo.indexOf("\"", numBeginChar);
+		String tag = releaseInfo.substring(numBeginChar, numEndChar);
+		System.out.println(tag);
+		return Float.parseFloat(tag);
 	}
 	
 	private void download(URL url, String destination) throws Exception {
-			ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-			FileOutputStream fos = new FileOutputStream(destination);
-			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-		    fos.close();
-		    rbc.close();
+		ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+		FileOutputStream fos = new FileOutputStream(destination);
+		FileChannel fch = fos.getChannel();
+		
+		fch.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+		fos.close();
+		fch.close();
 	}
 	
 	private void loadUrls() throws MalformedURLException {
 		updateUrl = 
 				new URL(uvod.getCurrentServer().getUpdateLink());
-		newestVerNumUrl = 
+		latestVerNumURL = 
 				new URL(LATEST_VER_NUM_URL_STR);
 	}
 	
