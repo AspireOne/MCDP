@@ -1,6 +1,5 @@
 package com.gmail.matejpesl1.mc_cheat_detection;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -281,13 +280,13 @@ import javafx.scene.text.TextAlignment;
 	private String update(UpdateManager updateManager) {
 		try {
 			updateManager.downloadUpdate();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			return "Nepodaøilo se stáhnout novou verzi.";
 		}
 		
 		try {
 			updateManager.update();	
-		} catch (IOException e) {
+		} catch (Exception e) {
 			return "Proces aktualizace se nezdaøil.";
 		}
 		return null;

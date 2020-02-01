@@ -2,7 +2,6 @@ package com.gmail.matejpesl1.mc_cheat_detection;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -41,7 +40,7 @@ public class UpdateManager {
 		return newestVerNum;
 	}
 	
-	private void download(URL url, String destination) throws IOException {
+	private void download(URL url, String destination) throws Exception {
 			ReadableByteChannel rbc = Channels.newChannel(url.openStream());
 			FileOutputStream fos = new FileOutputStream(destination);
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
@@ -91,12 +90,12 @@ public class UpdateManager {
 		}
 	}
 	
-	public void downloadUpdate() throws IOException {
+	public void downloadUpdate() throws Exception {
 			download(updateUrl, UPDATE_FILE.getPath());
 			downloaded = true;
 	}
 	
-	public void update() throws IOException {
+	public void update() throws Exception {
 		if (!downloaded) {
 			downloadUpdate();
 		}
