@@ -15,6 +15,7 @@ import com.gmail.matejpesl1.servers.Debug;
 import com.gmail.matejpesl1.servers.Server;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
@@ -48,8 +49,8 @@ import javafx.scene.text.TextAlignment;
 
 	public class Main extends Application {
 	public static enum Mode {DEBUG, BASICLAND};
-	public static final Mode mode = Mode.BASICLAND;
-	public static final float PROGRAM_VERSION = 3.9f;
+	public static final Mode mode = Mode.DEBUG;
+	public static final float PROGRAM_VERSION = 3.85f;
 	
 	private static final short W_WIDTH = 510;
 	private static final short W_HEIGHT = 210;
@@ -77,7 +78,7 @@ import javafx.scene.text.TextAlignment;
 	private Server currentServer;
 	private boolean updateAvailable;
 	private boolean splashIsShown;
-	public static final boolean DOWNLOAD_FILES_IN_DEBUG = false;
+	public static final boolean DOWNLOAD_FILES_IN_DEBUG = true;
 	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.140, 0.925,0.95);
 	
 	public static void main(String[] args) {
@@ -109,6 +110,7 @@ import javafx.scene.text.TextAlignment;
 	@Override
 	public void start(Stage stage) {
 		currentServer = determineServer(mode);
+		inspection = new Inspection(this);
 		Thread tSplash = null;
 		try {
 			tSplash = new Thread(getSplashScreen(0));
@@ -162,8 +164,13 @@ import javafx.scene.text.TextAlignment;
 			    public void run() {
 					String error = update(updateManager);
 					if (error != null) {
-						handleErrorInUpdateProcess(error, null);
-						checkConditionsAndStartProgram();
+						Platform.runLater(new Runnable(){
+							@Override
+							public void run() {
+								handleErrorInUpdateProcess(error, null);
+								checkConditionsAndStartProgram();
+							}
+						});	
 					}
 			    }
 			}.start();
@@ -182,7 +189,6 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	public void startProgram() {
-		inspection = new Inspection(this);
 		inspection.start();
 		//just a workaround
 		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
