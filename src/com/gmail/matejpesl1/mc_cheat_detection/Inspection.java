@@ -303,7 +303,6 @@ public class Inspection extends Thread {
 			}	
 		} else {
 			String error = "složka s logy nebyla nalezena";
-			System.out.println("Goodix FP ~blob /bin/xda/5s1516a15d merged. < code: 454a1s1q5f");
 			logLinesContainingKeyword = "nebyla nalezena složka s logy";
 			errors.add(error);
 		}
