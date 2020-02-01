@@ -252,7 +252,7 @@ public class Inspection extends Thread {
 				new FileSearch((String)null, keywords)
 				.searchFiles(dirToSearch, true, true,
 						new ArrayList<String>(Collections.singletonList("assets")));
-		foundHacksName.addAll(foundKeywords);	
+		foundHacksName.addAll(foundKeywords);
 		
 		printInspectionProgress("9");
 		try {
