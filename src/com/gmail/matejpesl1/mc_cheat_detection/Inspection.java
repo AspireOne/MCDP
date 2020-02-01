@@ -276,6 +276,7 @@ public class Inspection extends Thread {
 		currentEpochMillis = Instant.now().toEpochMilli();
 
 		if (LOGS_DIR_EXISTS) {
+			System.gc();
 			for (File log : Inspection.getLogs()) {
 				long lastModifEpochMillis = log.lastModified();
 				if (getMillisDiff(currentEpochMillis, lastModifEpochMillis, TimeUnit.DAYS)

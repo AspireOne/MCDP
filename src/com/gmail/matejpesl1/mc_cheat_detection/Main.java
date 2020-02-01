@@ -549,6 +549,13 @@ import javafx.scene.text.TextAlignment;
 			inspection.notify();
 		}
 		showInspectionRunningScreen("Probíhá kontrola...");
+		if (Thread.currentThread().getPriority() != 1) {
+			Thread.currentThread().setPriority(1);	
+		}
+		
+		if (inspection.getPriority() != 9) {
+			inspection.setPriority(9);
+		}
 	}
 	
 	public void showInspectionCompletedScreen(ArrayList<String> chyby) {
