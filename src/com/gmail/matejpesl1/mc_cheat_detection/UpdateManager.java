@@ -15,11 +15,11 @@ public class UpdateManager {
 	private final String thisProgramPath;
 	private float newestVerNum;
 	private boolean downloaded;
-	public static final File NEWEST_VER_NUM_FILE = 
+	public static final File LATEST_VER_NUM_FILE = 
 			new File(Inspection.OWN_DIR.getPath() + "\\newestVerNum.txt");
 	public static final File UPDATE_FILE = 
 			new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
-	public static final String UPDATE_FILE_URL_STR =
+	public static final String LATEST_VER_NUM_URL_STR =
 			"https://drive.google.com/uc?export=download&id=1pc7fn0_f5PCYeYsLjE60j1eTEZ_7QmRp";
 	private Main uvod;
 	
@@ -33,11 +33,11 @@ public class UpdateManager {
 	}
 	
 	private float getNewestVerNum() throws Exception {
-		download(newestVerNumUrl, NEWEST_VER_NUM_FILE.getPath());
+		download(newestVerNumUrl, LATEST_VER_NUM_FILE.getPath());
 		float newestVerNum = 
 				Float.parseFloat
-				(new Inspection(null).convertFileContentToString(NEWEST_VER_NUM_FILE));
-		NEWEST_VER_NUM_FILE.delete();
+				(new Inspection(null).convertFileContentToString(LATEST_VER_NUM_FILE));
+		LATEST_VER_NUM_FILE.delete();
 		return newestVerNum;
 	}
 	
@@ -53,7 +53,7 @@ public class UpdateManager {
 		updateUrl = 
 				new URL(uvod.getCurrentServer().getUpdateLink());
 		newestVerNumUrl = 
-				new URL(UPDATE_FILE_URL_STR);
+				new URL(LATEST_VER_NUM_URL_STR);
 	}
 	
 	private String getThisProgramPath() throws URISyntaxException {
