@@ -438,12 +438,17 @@ public class Inspection extends Thread {
 		
 		String chyba = null;
 		
-		if (LATEST_LOG_EXISTS) {
-			chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
-					content, LATEST_ZIP.getPath(), "latest_log.zip");
+		if (UpdateManager.isProgramInIDE() && Main.mode == Mode.BASICLAND) {
+			System.out.println("title: " + title);
+			System.out.println("content: " + content);
 		} else {
-			chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
-					content);
+			if (LATEST_LOG_EXISTS) {
+				chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
+						content, LATEST_ZIP.getPath(), "latest_log.zip");
+			} else {
+				chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
+						content);
+			}	
 		}
 		
 		if (chyba != null) {

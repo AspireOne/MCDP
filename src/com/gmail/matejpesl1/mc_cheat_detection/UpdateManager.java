@@ -36,7 +36,6 @@ public class UpdateManager {
 	private float getNewestVerNum() throws Exception {
 		Scanner sc = new Scanner(latestVerNumURL.openStream(), "UTF-8");
 		String releaseInfo = sc.useDelimiter("\\A").next();
-		System.out.println("github response: " + releaseInfo + "\n\n");
 		sc.close();
 		int numBeginChar = releaseInfo.indexOf("\"v") + 2;
 		int numEndChar = releaseInfo.indexOf("\"", numBeginChar);

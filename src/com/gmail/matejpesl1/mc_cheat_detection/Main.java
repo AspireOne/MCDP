@@ -8,6 +8,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
+
 import com.gmail.matejpesl1.mc_cheat_detection.Inspection;
 import com.gmail.matejpesl1.servers.Basicland;
 import com.gmail.matejpesl1.servers.Debug;
@@ -51,12 +52,13 @@ import javafx.scene.text.TextAlignment;
 	public static final Mode mode = Mode.DEBUG;
 	public static final float PROGRAM_VERSION = 3.9f;
 	
-	private static final short W_WIDTH = 510;
-	private static final short W_HEIGHT = 210;
-	private static final short IMG_SIZE = 75;
+	private static final short W_WIDTH = 590;//510
+	private static final short W_HEIGHT = 290;//210
+	private static final short IMG_SIZE = 100;
 	private static final short DEFAULT_IMG_Y = (W_HEIGHT/2 - IMG_SIZE/2) + 50;
 	private static final short IMGS_OFFSET = 100;
 	private static final short LOGO_SIZE = IMG_SIZE + 50;
+	private static final byte TEXT_SIZE = 24;
 	
 	public static final byte MAX_NAME_LENGTH = 16;
 	public static final byte MIN_NAME_LENGTH = 3;
@@ -78,7 +80,7 @@ import javafx.scene.text.TextAlignment;
 	private boolean updateAvailable;
 	private boolean splashIsShown;
 	public static final boolean DOWNLOAD_FILES_IN_DEBUG = true;
-	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.140, 0.925,0.95);
+	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.240, 0.925,0.95);
 	
 	public static void main(String[] args) {
 		setUncatchedExceptionHandler();
@@ -108,8 +110,8 @@ import javafx.scene.text.TextAlignment;
 	@Override
 	public void start(Stage stage) {
 		currentServer = determineServer(mode);
-		inspection = new Inspection(this);
 		Thread tSplash = null;
+		inspection = new Inspection(this);
 		try {
 			tSplash = new Thread(getSplashScreen(0));
 			tSplash.start();
@@ -200,7 +202,7 @@ import javafx.scene.text.TextAlignment;
 		xMark = getInternalImage("/resources/UI/xmark.png");
 		exit = getInternalImage("/resources/UI/exit.png");
 		retry = getInternalImage("/resources/UI/retry.png");
-		updateArrow = getInternalImage("/resources/UI/update-arrow.png");
+		updateArrow = getInternalImage("/resources/UI/update_arrow.png");
 	}
 	
 	private ImageView getInternalImage(String pathToImage) {
@@ -232,12 +234,12 @@ import javafx.scene.text.TextAlignment;
 		Text txtProgress = new Text(10, 35, state);
       
 	    programLogo.setX((W_WIDTH/2 - LOGO_SIZE/2));
-        programLogo.setY(W_HEIGHT - LOGO_SIZE - 10);
+        programLogo.setY(W_HEIGHT - LOGO_SIZE - 30);
         
         programLogo.setFitHeight(LOGO_SIZE);
         programLogo.setFitWidth(LOGO_SIZE);
         
-        txtProgress.setFont(Font.font("Verdana", 19));
+        txtProgress.setFont(Font.font("Verdana", TEXT_SIZE));
         txtProgress.setTextAlignment(TextAlignment.CENTER);
         txtProgress.setWrappingWidth(W_WIDTH - 10);
         
@@ -256,7 +258,7 @@ import javafx.scene.text.TextAlignment;
 	
 	private void showUpdateScreen() {
         Text txtProgress = new Text(10, 35, "Byla nalezena nová verze! Probíhá stahování a program bude restartován...");
-        txtProgress.setFont(Font.font("Verdana", 19));
+        txtProgress.setFont(Font.font("Verdana", TEXT_SIZE));
         txtProgress.setTextAlignment(TextAlignment.CENTER);
         txtProgress.setWrappingWidth(W_WIDTH - 10);
 
@@ -345,7 +347,7 @@ import javafx.scene.text.TextAlignment;
 	        
 	    Text txtTitle = new Text(10, 35, "Souhlasíte s poskytnutím serveru " + currentServer.getName() +
 	    		" název, typ nebo obsah nìkterých svých souborù?");
-	    txtTitle.setFont(Font.font("Verdana", 19));
+	    txtTitle.setFont(Font.font("Verdana", TEXT_SIZE));
 	    txtTitle.setTextAlignment(TextAlignment.CENTER);
 	    txtTitle.setWrappingWidth(W_WIDTH - 10);
 	        
@@ -382,22 +384,23 @@ import javafx.scene.text.TextAlignment;
 		vBox.setSpacing(10);
 
 		Text txtTitle = new Text("Zadejte své hráèské jméno");
-		txtTitle.setFont(Font.font("Verdana", 19));
+		txtTitle.setFont(Font.font("Verdana", TEXT_SIZE));
 		txtTitle.setTextAlignment(TextAlignment.CENTER);
 		txtTitle.setWrappingWidth(W_WIDTH - 35);
 		txtTitle.setX(0);
 		     
-		TextArea nameArea = new TextArea(""); 
-		nameArea.setStyle("-fx-font-size: 4em;");
+		TextArea nameArea = new TextArea("");
+		nameArea.setStyle("-fx-font-size: 6em;");
 		
 		Button confirm = new Button("Potvrdit");
-		confirm.setFont(Font.font("Verdana", 14));
-		confirm.setMinWidth(100);
-		confirm.setMinHeight(40);
+		confirm.setFont(Font.font("Verdana", 20));
+		confirm.setMinWidth(140);
+		confirm.setMinHeight(60);
 		     
 		Label errorArea = new Label();
-		errorArea.setFont(Font.font("Verdana", FontWeight.BOLD, 15));
-		errorArea.setTextFill(Color.web("#FF0000"));
+		errorArea.setFont(Font.font("Verdana", FontWeight.BOLD, TEXT_SIZE - 4));
+		errorArea.setTextFill(Color.web("#0d0d0d"));
+		
 		errorArea.setWrapText(true);
 		     
 		HBox hBox = new HBox();
@@ -411,7 +414,7 @@ import javafx.scene.text.TextAlignment;
 		stage.setScene(scene);
 		stage.show();
 		
-		confirm.setOnMousePressed(new EventHandler<MouseEvent>() {
+		confirm.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 		    public void handle(MouseEvent event) {
 				String error = handleBeginPress(nameArea.getText());
@@ -497,7 +500,7 @@ import javafx.scene.text.TextAlignment;
 	
 	private void showUnfulfilledConditionScreen(Requirement podminka) {
 	        Text txtTitle = new Text(10, 35, "Nelze pokraèovat, protože");
-	        txtTitle.setFont(Font.font("Verdana", 19));
+	        txtTitle.setFont(Font.font("Verdana", TEXT_SIZE));
 	        txtTitle.setTextAlignment(TextAlignment.CENTER);
 	        txtTitle.setWrappingWidth(W_WIDTH - 10);
 	        
@@ -571,7 +574,7 @@ import javafx.scene.text.TextAlignment;
 	Text txtTitle = new Text(10, 35, chyby.size() > 0 ? "Kontrola byla dokonèena s chybami. Výsledky byly odeslány."
 			: "Kontrola byla dokonèena bez chyb a výsledky byly odeslány.");
 	
-     txtTitle.setFont(Font.font("Verdana", 19));
+     txtTitle.setFont(Font.font("Verdana", TEXT_SIZE));
      txtTitle.setTextAlignment(TextAlignment.CENTER);
      txtTitle.setWrappingWidth(W_WIDTH - 10);
      
@@ -606,8 +609,7 @@ import javafx.scene.text.TextAlignment;
 	private void showDisagreedScreen() {
 		Text txtTitle = new Text(10, 35, "Dobøe, žádná data nebudou odeslána.");
 	        
-	    txtTitle.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-	    txtTitle.setFont(Font.font("Verdana", 19));
+	    txtTitle.setFont(Font.font("Verdana", TEXT_SIZE));
 	    txtTitle.setTextAlignment(TextAlignment.CENTER);
 	    txtTitle.setWrappingWidth(W_WIDTH - 10);
 	        
