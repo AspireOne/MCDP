@@ -49,7 +49,7 @@ import javafx.scene.text.TextAlignment;
 	public class Main extends Application {
 	public static enum Mode {DEBUG, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.8f;
+	public static final float PROGRAM_VERSION = 3.85f;
 	
 	private static final short W_WIDTH = 510;
 	private static final short W_HEIGHT = 210;
@@ -151,7 +151,6 @@ import javafx.scene.text.TextAlignment;
 		if (splashIsShown) {
 			synchronized(tSplash) {
 				tSplash.interrupt();
-				System.out.println("tried to interrup from Main");
 			}
 			splashIsShown = false;
 		}

@@ -40,7 +40,7 @@ public class UpdateManager {
 		int numBeginChar = releaseInfo.indexOf("\"v") + 2;
 		int numEndChar = releaseInfo.indexOf("\"", numBeginChar);
 		String tag = releaseInfo.substring(numBeginChar, numEndChar);
-		System.out.println(tag);
+		System.out.println("latest version: " + tag);
 		return Float.parseFloat(tag);
 	}
 	
@@ -90,8 +90,10 @@ public class UpdateManager {
 		}
 		
 		if (Main.PROGRAM_VERSION < newestVerNum) {
+			System.out.println("This program version is outdated.");
 			return true;
 		} else {
+			System.out.println("this is the latest version of this program");
 			return false;
 		}
 	}
