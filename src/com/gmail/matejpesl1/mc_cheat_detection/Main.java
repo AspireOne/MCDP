@@ -76,7 +76,7 @@ import javafx.scene.text.TextAlignment;
 	public static ArrayList<String> globalErrors = new ArrayList<>();
 	private Server currentServer;
 	private boolean updateAvailable;
-	private boolean splashIsShown;
+	private boolean splashIsShown;d
 	public static final boolean DOWNLOAD_FILES_IN_DEBUG = false;
 	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.140, 0.925,0.95);
 	
