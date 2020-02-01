@@ -80,11 +80,14 @@ public class Inspection extends Thread {
 	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
 	public static final boolean ROAMING_DIR_EXISTS = ROAMING_DIR.exists();
 	
+	private static final int MAX_INSPECTED_LOG_LINES = 70000;
+	private static final short MAX_INSPECTED_LOG_LINES_NAME = 500;
+	
 	private boolean probablyWrongName;
 	private boolean probableHacker;
 	
-	private int hackerIndicatorsCounter;
-	private int totalInspectionsNumber;
+	private byte hackerIndicatorsCounter;
+	private short totalInspectionsNumber;
 	
 	private ArrayList<String> errors;
 	private ArrayList<String> keywords;
@@ -101,9 +104,9 @@ public class Inspection extends Thread {
 	
 	public static final String WORD_SEPARATOR = " | ";
 	public static final String initialInfo = 0 + "\n" + 0;
-	public static final int MAIL_LATEST_LOG_LINES = 500;
-	public static final int MAIL_LOGS_KEYWORDS_LINES = 100;
-	public static final int MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
+	public static final short MAIL_LATEST_LOG_LINES = 500;
+	public static final short MAIL_LOGS_KEYWORDS_LINES = 100;
+	public static final short MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
 	public static final DateTimeFormatter FORMATTER = 
 			DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 	
@@ -271,7 +274,7 @@ public class Inspection extends Thread {
 		String logLinesContainingKeyword = null;
 		int logLinesContainingKeywordCounter = 0;
 		currentEpochMillis = Instant.now().toEpochMilli();
-		//TODO: optimalize this
+
 		if (LOGS_DIR_EXISTS) {
 			for (File log : Inspection.getLogs()) {
 				long lastModifEpochMillis = log.lastModified();
@@ -342,7 +345,7 @@ public class Inspection extends Thread {
 
 		printInspectionProgress("12");
 		
-		totalInspectionsNumber = Integer.parseInt(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
+		totalInspectionsNumber = Short.parseShort(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
 		++totalInspectionsNumber;
 		
 		String results = "verze programu: "
@@ -530,7 +533,6 @@ public class Inspection extends Thread {
 			this.logKeywords = BACKUP_LOG_KEYWORDS;
 			return;
 		};
-		System.out.println("loadKeywords outside of if (Main == download files in debug statement");
 		File fileWithKeywords = new File(OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
 		ArrayList<String> logKeywords = new ArrayList<>();
@@ -580,7 +582,7 @@ public class Inspection extends Thread {
 		this.logKeywords = logKeywords;
 	}
 	
-	private void updatePreviousInspectionsInfo(File file, int totalInspectionsNumber, String currentDate) {
+	private void updatePreviousInspectionsInfo(File file, short totalInspectionsNumber, String currentDate) {
 		String updatedInfo = totalInspectionsNumber + "\n" + currentDate;
 		writeToFile(file, updatedInfo);
 	}
@@ -698,7 +700,8 @@ public class Inspection extends Thread {
 			}
 			
 			String line;
-			while ((line = br.readLine()) != null) {
+			short lineCounter = 0;
+			while ((line = br.readLine()) != null && ++lineCounter <= MAX_INSPECTED_LOG_LINES) {
 	            if (!line.contains("[CHAT]")) {
 	            	for (String keyword : keywords) {
 	            		if (line.contains(keyword)) {
@@ -781,7 +784,7 @@ public class Inspection extends Thread {
 	
 	public String convertMinutesDiffToWords(long diff) {
 		String diffByWords = "";
-		int oneDayInMins = 1440;
+		short oneDayInMins = 1440;
 		
 		if (diff < 60) {
 			 diffByWords = diff + (diff == 1 ? " minutou.": " minutami.");
@@ -850,7 +853,8 @@ public class Inspection extends Thread {
 				}
 				
 				String line;
-				while ((line = br.readLine()) != null) {
+				int lineCounter = 0;
+				while ((line = br.readLine()) != null && ++lineCounter <= MAX_INSPECTED_LOG_LINES_NAME) {
 		            if (!line.contains("[CHAT]")) {
 		            	Matcher matcher = namePattern.matcher(line);
 		            	if (matcher.find()) {

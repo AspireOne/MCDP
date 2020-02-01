@@ -22,8 +22,8 @@ public class SplashScreen extends JWindow implements Runnable {
         JPanel panel = (JPanel)getContentPane();
         panel.setBackground(Color.white);
          
-        int width = 400;
-        int height =130;
+        short width = 400;
+        short height =130;
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         int x = (screen.width - width)/2;
         int y = (screen.height-height)/2;

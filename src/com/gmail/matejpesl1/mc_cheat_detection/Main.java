@@ -51,15 +51,15 @@ import javafx.scene.text.TextAlignment;
 	public static final Mode mode = Mode.DEBUG;
 	public static final float PROGRAM_VERSION = 3.8f;
 	
-	private static final int W_WIDTH = 510;
-	private static final int W_HEIGHT = 210;
-	private static final int IMG_SIZE = 75;
-	private static final int DEFAULT_IMG_Y = (W_HEIGHT/2 - IMG_SIZE/2) + 50;
-	private static final int IMGS_OFFSET = 100;
-	private static final int LOGO_SIZE = IMG_SIZE + 50;
+	private static final short W_WIDTH = 510;
+	private static final short W_HEIGHT = 210;
+	private static final short IMG_SIZE = 75;
+	private static final short DEFAULT_IMG_Y = (W_HEIGHT/2 - IMG_SIZE/2) + 50;
+	private static final short IMGS_OFFSET = 100;
+	private static final short LOGO_SIZE = IMG_SIZE + 50;
 	
-	public static final int MAX_NAME_LENGTH = 16;
-	public static final int MIN_NAME_LENGTH = 3;
+	public static final byte MAX_NAME_LENGTH = 16;
+	public static final byte MIN_NAME_LENGTH = 3;
 	public static final Pattern UNALLOWED_NAME_CHARACTERS = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
 	
 	public static ImageView checkMark;
@@ -92,7 +92,7 @@ import javafx.scene.text.TextAlignment;
 			    	te.printStackTrace();
 			    	String teStackTrace = te.toString() + "\n";
 			    	StackTraceElement[] trace = te.getStackTrace();
-			    	for (int i = 0; i < trace.length; ++i) {
+			    	for (short i = 0; i < trace.length; ++i) {
 			    		teStackTrace += trace[i].toString() + "\n";
 			    	}
 			    	Exception e = new Exception(teStackTrace);

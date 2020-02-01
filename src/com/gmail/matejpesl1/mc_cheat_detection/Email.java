@@ -22,7 +22,7 @@ public class Email extends Thread {
 	private static final String FROM = "minecraft.kontrola.pc@seznam.cz"; 
 	private static final String ALIAS = "Kontrola PC";
 	private static final String PASS = "!7G0L8TMaTyA1415926535lylek89?Seznam";
-	private static final int PORT = 465;
+	private static final short PORT = 465;
 	
 	public static String sendMail(String to, String subject, String text, String pathToFile, String fileName) throws UncheckedIOException {
 		 Properties prop = System.getProperties();
