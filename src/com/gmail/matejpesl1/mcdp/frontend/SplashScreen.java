@@ -4,14 +4,13 @@ import java.awt.*;
 import java.net.URL;
 import javax.swing.*;
 
-@SuppressWarnings("serial")
 public class SplashScreen extends JWindow implements Runnable {
 	private final Color borderColor;
     private final URL resourceURL;
     private final int duration;
     private final static short HEIGHT =260;
     private final static short WIDTH = 520;
-    Main owner;
+    final Main owner;
     
     public SplashScreen(Color borderColor, String resourceName, int duration, Main owner) {
     	this.duration = duration;

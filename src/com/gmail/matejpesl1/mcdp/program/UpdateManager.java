@@ -24,9 +24,9 @@ public class UpdateManager {
 			new File(Constants.OWN_DIR.getPath() + "\\update.jar");
 	public static final String LATEST_VER_NUM_URL_STR =
 			"https://api.github.com/repos/Aspire0ne/mcdp-downloads/tags";
-	private Main uvod;
+	private final Main uvod;
 	
-	public UpdateManager(Main uvod) throws URISyntaxException, MalformedURLException {
+	public UpdateManager(Main uvod) throws MalformedURLException {
 		this.uvod = uvod;
 		thisProgramPath = getThisProgramPath();
 		loadUrls();
@@ -63,10 +63,9 @@ public class UpdateManager {
 				new URL(LATEST_VER_NUM_URL_STR);
 	}
 	
-	private String getThisProgramPath() throws URISyntaxException {
-		String thisProgramPath = null;
+	private String getThisProgramPath() {
 		String thisProgramName = new File(System.getProperty("java.class.path")).getName();
-		thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
+		String thisProgramPath = System.getProperty("user.dir") + "\\" + thisProgramName;
 
 		System.out.println("path: " + thisProgramPath);
 		return thisProgramPath;

@@ -60,16 +60,16 @@ public class FileUtils {
 		}
 	}
 	
-	public static String convertFileContentToString(File file) {
-	    String data = "";
+	public static java.lang.String convertFileContentToString(File file) {
 	    boolean fileExists = file.exists();
 	    if (!fileExists) {
 	    	return null;
 	    }
-	    
+
+		StringBuilder data = new StringBuilder();
 	    try {
 	    	FileInputStream stream = new FileInputStream(file);
-			BufferedReader br = null;
+			BufferedReader br;
 			
 			if (file.getName().endsWith(".gz")) {
 				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
@@ -82,14 +82,14 @@ public class FileUtils {
 			
 			String line;
 			while ((line = br.readLine()) != null) {
-				data = data + line + "\n";
+				data.append(line).append("\n");
 			}
 		br.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 			Main.globalErrors.add("Nastal interní problém pøi ètení obsahu souboru. ");
 		}
-	    return data;
+	    return data.toString();
 	  }
 	
 	public static void deleteFile(File file) throws IOException {
@@ -100,8 +100,7 @@ public class FileUtils {
 		long fileModifEpoch = file.lastModified();
 		Instant instant = Instant.ofEpochMilli(fileModifEpoch);
 		ZoneId zoneId = ZoneId.systemDefault();
-		LocalDateTime toDate = instant.atZone(zoneId).toLocalDateTime();
-		return toDate;
+		return instant.atZone(zoneId).toLocalDateTime();
 	}
 	
 	public static void createOwnDir() {

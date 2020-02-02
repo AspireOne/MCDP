@@ -11,13 +11,14 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 
 public class FileSearch implements FileVisitor<Path> {
 	private ArrayList<String> namesOfDirsToSkip = new ArrayList<>();
-	private ArrayList<String> finalFiles = new ArrayList<>();
-	private ArrayList<String> keywords = new ArrayList<>();
-	private ArrayList<String> extensions = new ArrayList<>();
+	private final ArrayList<String> finalFiles = new ArrayList<>();
+	private final ArrayList<String> keywords;
+	private final ArrayList<String> extensions;
 	private boolean returnFileNames;
 	private String nameOfStartingDir;
 	private static final ArrayList<String> DEFAULT_EXTENSIONS_TO_SEARCH =
@@ -33,8 +34,7 @@ public class FileSearch implements FileVisitor<Path> {
 		if (extension == null) {
 			this.extensions = null;
 		} else {
-			ArrayList<String> extensionArr = new ArrayList<>(Arrays.asList(extension));
-			this.extensions = extensionArr;
+			this.extensions = new ArrayList<>(Collections.singletonList(extension));
 		}
 		this.keywords = keywords;
 	}
@@ -61,7 +61,7 @@ public class FileSearch implements FileVisitor<Path> {
 	
 	
 	@Override
-	public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) throws IOException {
+	public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) {
 		String dirName = dir.getFileName().toString();
 		String pathToDir = dir.toString();
 		if (namesOfDirsToSkip != null && namesOfDirsToSkip.parallelStream().anyMatch(dirName::equals)) {
@@ -87,13 +87,13 @@ public class FileSearch implements FileVisitor<Path> {
 	
 	
 	@Override
-	public FileVisitResult visitFile(Path filePath, BasicFileAttributes attributes) throws IOException {
+	public FileVisitResult visitFile(Path filePath, BasicFileAttributes attributes) {
 		String filename = filePath.getFileName().toString();
 		String pathToFile = filePath.toString();
 		String fileExtension = filePath.toFile().isDirectory() ? "" : filename.substring(filename.lastIndexOf(".") + 1);
 		boolean extensionEquals = false;
 		boolean keywordEquals = false;
-		if (!DEFAULT_EXTENSIONS_TO_SEARCH.parallelStream().anyMatch(fileExtension.toLowerCase().trim()::matches)) {
+		if (DEFAULT_EXTENSIONS_TO_SEARCH.parallelStream().noneMatch(fileExtension.toLowerCase().trim()::matches)) {
 			return FileVisitResult.CONTINUE;
 		}
 		
@@ -101,11 +101,12 @@ public class FileSearch implements FileVisitor<Path> {
 			for (String extension : extensions) {
 				if (fileExtension.equals(extension)) {
 					extensionEquals = true;
+					break;
 				}
 			}
 		}
 		
-		if (extensionEquals == false && extensions != null) {
+		if (!extensionEquals && extensions != null) {
 			return FileVisitResult.CONTINUE;
 		}
 		if (keywords != null) {
@@ -115,7 +116,7 @@ public class FileSearch implements FileVisitor<Path> {
 			} 
 		}
 		
-		if (keywordEquals == false && keywords != null) {
+		if (!keywordEquals && keywords != null) {
 			return FileVisitResult.CONTINUE;
 		}
 		
@@ -127,7 +128,7 @@ public class FileSearch implements FileVisitor<Path> {
 	
 	
 	@Override
-	public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+	public FileVisitResult visitFileFailed(Path file, IOException exc) {
 		return FileVisitResult.CONTINUE;
 	}
 
@@ -135,7 +136,7 @@ public class FileSearch implements FileVisitor<Path> {
 	
 	
 	@Override
-	public FileVisitResult postVisitDirectory(Path file, IOException exc) throws IOException {
+	public FileVisitResult postVisitDirectory(Path file, IOException exc) {
 		return FileVisitResult.CONTINUE;
 	}
 }

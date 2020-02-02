@@ -22,12 +22,10 @@ import com.gmail.matejpesl1.mcdp.tools.FileUtils;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -39,7 +37,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
@@ -74,10 +71,11 @@ import javafx.scene.text.TextAlignment;
 	private ImageView updateArrow;
 	
 	private boolean inspectionRunning;
-	private static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
-	public static Stage stage;
+	private enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR}
+
+		public static Stage stage;
 	public static Inspection inspection;
-	public static ArrayList<String> globalErrors = new ArrayList<>();
+	public static final ArrayList<String> globalErrors = new ArrayList<>();
 	private Server currentServer;
 	private boolean updateAvailable;
 	public boolean splashShouldBeShown;
@@ -90,17 +88,15 @@ import javafx.scene.text.TextAlignment;
 	
 	public static void setUncatchedExceptionHandler() {
 		try {
-			Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-			    public void uncaughtException(Thread t, Throwable te) {
-			    	te.printStackTrace();
-			    	String teStackTrace = te.toString() + "\n";
-			    	StackTraceElement[] trace = te.getStackTrace();
-			    	for (short i = 0; i < trace.length; ++i) {
-			    		teStackTrace += trace[i].toString() + "\n";
-			    	}
-			    	Exception e = new Exception(teStackTrace);
-			    	Inspection.interruptInspection("neošetøená vyjímka", true, e, true);
-			    }
+			Thread.setDefaultUncaughtExceptionHandler((t, te) -> {
+				te.printStackTrace();
+				StringBuilder teStackTrace = new StringBuilder(te.toString() + '\n');
+				StackTraceElement[] trace = te.getStackTrace();
+				for (StackTraceElement stackTraceElement : trace) {
+					teStackTrace.append(stackTraceElement.toString()).append("\n");
+				}
+				Exception e = new Exception(teStackTrace.toString());
+				Inspection.interruptInspection("neošetøená vyjímka", true, e, true);
 			});
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -161,13 +157,10 @@ import javafx.scene.text.TextAlignment;
 			new Thread(() -> {
 					String error = update(updateManager);
 					if (error != null) {
-						Platform.runLater(new Runnable(){
-							@Override
-							public void run() {
-								handleErrorInUpdateProcess(error, null);
-								checkConditionsAndStartProgram();
-							}
-						});	
+						Platform.runLater(() -> {
+							handleErrorInUpdateProcess(error, null);
+							checkConditionsAndStartProgram();
+						});
 					}
 			}).start();
 		} else {
@@ -210,7 +203,7 @@ import javafx.scene.text.TextAlignment;
 		 return Main.class.getResource(path);
 	 }
 	
-	private SplashScreen getSplashScreen(int duration) throws Exception {
+	private SplashScreen getSplashScreen(int duration) {
 		return new SplashScreen(currentServer.getBorderColor(), currentServer.getLogo(), duration, this);
 	}
 	
@@ -315,12 +308,10 @@ import javafx.scene.text.TextAlignment;
 		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/programicons/32x32.png");
 		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/programicons/16x16.png");
 		stage.setTitle("Kontrola | " + currentServer.getIP() + " [v" + Constants.PROGRAM_VERSION + "]");
-		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-	          public void handle(WindowEvent we) {
-	              System.out.println("Stage is closing");
-	              Main.endProgram();
-	          }
-	      });
+		stage.setOnCloseRequest(we -> {
+			System.out.println("Stage is closing");
+			Main.endProgram();
+		});
 		Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
 		stage.setX((primScreenBounds.getWidth() - W_WIDTH) / 2);
 		stage.setY((primScreenBounds.getHeight() - W_HEIGHT) / 2);
@@ -405,24 +396,18 @@ import javafx.scene.text.TextAlignment;
 		stage.setScene(scene);
 		stage.show();
 		
-		confirm.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-		    public void handle(MouseEvent event) {
-				String error = handleBeginPress(nameArea.getText());
-				nameArea.clear();
-	    	    errorArea.setText(error);
-			}            
+		confirm.setOnMouseClicked(event -> {
+			String error = handleBeginPress(nameArea.getText());
+			nameArea.clear();
+			errorArea.setText(error);
 		});
 		     
-		nameArea.addEventFilter(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
-			@Override
-			public void handle(KeyEvent key) {
-				if (key.getCode().equals(KeyCode.ENTER)) {
-					key.consume();
-					String error = handleBeginPress(nameArea.getText());
-		    	    nameArea.clear();
-		    	    errorArea.setText(error);
-				}
+		nameArea.addEventFilter(KeyEvent.KEY_PRESSED, key -> {
+			if (key.getCode().equals(KeyCode.ENTER)) {
+				key.consume();
+				String error = handleBeginPress(nameArea.getText());
+				nameArea.clear();
+				errorArea.setText(error);
 			}
 		});
 	}
@@ -526,20 +511,12 @@ import javafx.scene.text.TextAlignment;
 	        stage.setScene(scene);
 	        stage.show();
 	        
-	        retry.setOnMousePressed(new EventHandler<MouseEvent>() {
-	            @Override
-	            public void handle(MouseEvent event) {
-	            	pane.getChildren().clear();
-	            	checkConditionsAndStartProgram();
-	            }            
-	        });
+	        retry.setOnMousePressed(event -> {
+				pane.getChildren().clear();
+				checkConditionsAndStartProgram();
+			});
 	        
-	        exit.setOnMousePressed(new EventHandler<MouseEvent>() {
-	            @Override
-	            public void handle(MouseEvent event) {
-	            	Main.endProgram();
-	            }            
-	        });
+	        exit.setOnMousePressed(event -> Main.endProgram());
  	}
 	
 	public void startInspection(String jmeno, boolean pravdepodobneNespravneJmeno) {
@@ -582,12 +559,7 @@ import javafx.scene.text.TextAlignment;
      Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
      stage.setScene(scene);
      
-     exit.setOnMousePressed(new EventHandler<MouseEvent>() {
-         @Override
-         public void handle(MouseEvent event) {
-         	Main.endProgram();
-         }
-     });
+     exit.setOnMousePressed(event -> Main.endProgram());
 	}
 	
 	public void bringToFront() {
@@ -622,20 +594,12 @@ import javafx.scene.text.TextAlignment;
 	        
 	    stage.setScene(scene);
 	        
-	    retry.setOnMousePressed(new EventHandler<MouseEvent>() {
-	    	@Override
-	    	public void handle(MouseEvent event) {
-	    		pane.getChildren().clear();
-	    		showAgreementScreen();
-	    	}            
-	    });
+	    retry.setOnMousePressed(event -> {
+			pane.getChildren().clear();
+			showAgreementScreen();
+		});
 	        
-	    exit.setOnMousePressed(new EventHandler<MouseEvent>() {
-	    	@Override
-	    	public void handle(MouseEvent event) {
-	    		Main.endProgram();
-	    	}           
-	    });
+	    exit.setOnMousePressed(event -> Main.endProgram());
 	}
 	
 	 public static void endProgram() {

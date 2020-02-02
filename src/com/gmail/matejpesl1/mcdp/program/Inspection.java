@@ -79,18 +79,18 @@ public class Inspection extends Thread {
 	
 	private byte hackerIndicatorsCounter;
 	
-	private ArrayList<String> errors;
+	private final ArrayList<String> errors;
 	private ArrayList<String> keywords;
 	private ArrayList<String> logKeywords;
-	private static ArrayList<File> logs = new ArrayList<File>();
+	private static final ArrayList<File> logs = new ArrayList<>();
 	
 	private String hackerIndicators;
 	private String playerName;
 	public String progress;
 	
 	private LocalDateTime lastInspectionDate;
-	private List<String> foundHacksName;
-	private Main main;
+	private final List<String> foundHacksName;
+	private final Main main;
 	
 	public static final File LATEST_ZIP = new File(Constants.OWN_DIR + "\\latest.zip");
 	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
@@ -166,7 +166,8 @@ public class Inspection extends Thread {
 		
 		if (Constants.mode != Mode.DEBUG) {
 			if (timeSinceLastInspectionMins < 3 && timeSinceLastInspectionMins >= 1) {
-				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true, null, false);
+				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.",
+						true, null, false);
 			}	
 		}
 		
@@ -179,41 +180,44 @@ public class Inspection extends Thread {
 		}
 		printInspectionProgress("4");
 		
-		ArrayList<String> namesOfFilesOnDesktopArr = new ArrayList<>();
-		ArrayList<String> namesOfFilesInVersionsArr = new ArrayList<>();
-		ArrayList<String> namesOfFilesInMinecraftArr =  new ArrayList<>();
-		ArrayList<String> namesOfJarFilesInDownloadsArr = new ArrayList<>();
-		ArrayList<String> namesOfExeFilesInDownloadsArr = new ArrayList<>();
+		ArrayList<String> namesOfFilesOnDesktopArr;
+		ArrayList<String> namesOfJarFilesInDownloadsArr;
+		ArrayList<String> namesOfFilesInVersionsArr;
+		ArrayList<String> namesOfFilesInMinecraftArr;
+		ArrayList<String> namesOfExeFilesInDownloadsArr;
 		
 		namesOfFilesInVersionsArr = new FileSearch
-				((String)null, null).searchFiles(VERSIONS_DIR, false, true, null);
+				((String)null, null)
+				.searchFiles(VERSIONS_DIR, false, true, null);
 		
 		namesOfFilesInMinecraftArr = new FileSearch
-				((String)null, null).searchFiles(MINECRAFT_DIR, false, true, null);
+				((String)null, null)
+				.searchFiles(MINECRAFT_DIR, false, true, null);
 		
 		printInspectionProgress("5");
 		
 		if (DOWNLOADS_DIR_EXISTS) {
 			namesOfJarFilesInDownloadsArr = new FileSearch
-					(new ArrayList<String>(Collections.singletonList("jar")), null)
+					(new ArrayList<>(Collections.singletonList("jar")), null)
 					.searchFiles(DOWNLOADS_DIR, false, true, null);
 			
 			namesOfExeFilesInDownloadsArr = new FileSearch
-					(new ArrayList<String>(Collections.singletonList("exe")), null)
+					(new ArrayList<>(Collections.singletonList("exe")), null)
 					.searchFiles(DOWNLOADS_DIR, false, true, null);	
 		} else {
 			String error = "složka stažené nebyla nalezena/neexistuje.";
-			namesOfJarFilesInDownloadsArr.add(error);
+			namesOfJarFilesInDownloadsArr = new ArrayList<>(Collections.singletonList(error));
+			namesOfExeFilesInDownloadsArr = new ArrayList<>(Collections.singletonList(error));
 			errors.add(error);
 		}
 		
 		if (DESKTOP_DIR_EXISTS) {
 			namesOfFilesOnDesktopArr = new FileSearch
-					(new ArrayList<String>(Collections.singletonList("jar")), null)
+					(new ArrayList<>(Collections.singletonList("jar")), null)
 					.searchFiles(DESKTOP_DIR, false, true, null);	
 		} else {
 			String error = "Plocha nebyla nalezena.";
-			namesOfFilesOnDesktopArr.add(error);
+			namesOfFilesOnDesktopArr = new ArrayList<>(Collections.singletonList(error));
 			errors.add(error);
 		}
 		
@@ -255,7 +259,7 @@ public class Inspection extends Thread {
 		ArrayList<String> foundKeywords =
 				new FileSearch((String)null, keywords)
 				.searchFiles(dirToSearch, true, true,
-						new ArrayList<String>(Collections.singletonList("assets")));
+						new ArrayList<>(Collections.singletonList("assets")));
 		foundHacksName.addAll(foundKeywords);
 		
 		printInspectionProgress("9");
@@ -330,7 +334,9 @@ public class Inspection extends Thread {
 		}
 		
 		 
-		short totalInspectionsNumber = Short.parseShort(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
+		short totalInspectionsNumber =
+				Short.parseShort(getLine(predesleKontrolyInfoStr, 1)
+						.replace("\\D+",""));
 		
 		printInspectionProgress("11W");
 		
@@ -340,7 +346,8 @@ public class Inspection extends Thread {
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
-					interruptInspection("Nastala chyba pøi synchronizování vláken.", true, e, true);
+					interruptInspection("Nastala chyba pøi synchronizování vláken.",
+							true, e, true);
 				}	
 			}
 		}
@@ -365,7 +372,8 @@ public class Inspection extends Thread {
 				
 				+ "<b>Pøedešlá kontrola probìhla pøed: </b><br>"
 					+ (totalInspectionsNumber <= 1 ? "žádné pøedešlé kontroly neprobìhly" :
-					convertMinutesDiffToWords(timeSinceLastInspectionMins) + " (" + lastInspectionDate.format(FORMATTER) + ")") + "<br><br>"
+					convertMinutesDiffToWords(timeSinceLastInspectionMins)
+							+ " (" + lastInspectionDate.format(FORMATTER) + ")") + "<br><br>"
 				
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>"
 					+ (foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
@@ -401,15 +409,10 @@ public class Inspection extends Thread {
 		
 		printInspectionProgress("13");
 		
-		Platform.runLater(new Runnable(){
-			@Override
-			public void run() {
-				   main.changeInspectionState("Odesílání výsledkù");
-			}
-		});
+		Platform.runLater(() -> main.changeInspectionState("Odesílání výsledkù"));
 		
 		String title = "Kontrola hráèe " + playerName;
-		String content = "";
+		String content;
 		if (LATEST_LOG_EXISTS) {
 			content = results + "<br><br>----------------------------------------------------------------------------"
 					+ "<br><b>Prvních " + MAIL_LATEST_LOG_LINES + " øádkù Nejnovìjšího logu:"
@@ -443,12 +446,7 @@ public class Inspection extends Thread {
 		
 		printInspectionProgress("14F");
 		
-		Platform.runLater(new Runnable(){
-			@Override
-			public void run() {
-				main.showInspectionCompletedScreen(errors);
-			}
-		});
+		Platform.runLater(() -> main.showInspectionCompletedScreen(errors));
 		System.out.println("Inspection done");
 	}
 	
@@ -512,14 +510,9 @@ public class Inspection extends Thread {
 	}
 	
 	private Thread findKeywordsInDir(File dir, ArrayList<String> keywords, ArrayList<String> subDirsToSkip) {
-		return new Thread() {
-			@Override
-			public void run() {
-				foundHacksName.addAll(
-						new FileSearch((String)null, keywords)
-						.searchFiles(dir, true, true, subDirsToSkip));
-			}
-		};
+		return new Thread(() -> foundHacksName.addAll(
+				new FileSearch((String)null, keywords)
+				.searchFiles(dir, true, true, subDirsToSkip)));
 	}
 	
 	private void loadKeywords() {
@@ -527,8 +520,8 @@ public class Inspection extends Thread {
 			this.keywords = BACKUP_KEYWORDS;
 			this.logKeywords = BACKUP_LOG_KEYWORDS;
 			return;
-		};
-		
+		}
+
 		System.out.println("downloading keywords");
 		File fileWithKeywords = new File(Constants.OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
@@ -621,7 +614,7 @@ public class Inspection extends Thread {
 		
 		try {
 			FileInputStream stream = new FileInputStream(log);
-			BufferedReader br = null;
+			BufferedReader br;
 			
 			if (log.getName().endsWith(".gz")) {
 				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
@@ -704,13 +697,9 @@ public class Inspection extends Thread {
 	}
 	
 	public static ArrayList<String> getPathsToLogs() {
-		ArrayList<String> pathsToLogs = new ArrayList<>();
-			for (String pathToLog : new FileSearch
-					(new ArrayList<String>(Arrays.asList("gz", "log")), null)
-					.searchFiles(LOGS_DIR, true, false, null)) {
-				pathsToLogs.add(pathToLog);
-			}
-			return pathsToLogs;
+		return new FileSearch
+				(new ArrayList<>(Arrays.asList("gz", "log")), null)
+				.searchFiles(LOGS_DIR, true, false, null);
 	}
 	
 	public boolean isNameInLogs(String name) {
@@ -728,7 +717,7 @@ public class Inspection extends Thread {
 			
 			try {
 				FileInputStream stream = new FileInputStream(log);
-				BufferedReader br = null;
+				BufferedReader br;
 				
 				if (log.getName().endsWith(".gz")) {
 					GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
@@ -774,39 +763,36 @@ public class Inspection extends Thread {
 	public static void interruptInspection(String error, boolean showToUser, Exception e, boolean send) {
 		System.out.println("inspection interrupted");
 		try {
-			Platform.runLater(new Runnable(){
-				@Override
-				public void run() {
-					Alert alert = new Alert(AlertType.ERROR);
-					alert.setTitle("Chyba");
-					alert.setHeaderText("Došlo k chybì, která"
-							+ " zabránila normální funkci programu. Žádná data nebudou odeslána.");
-					
-					if (showToUser) {
-						alert.setContentText("kód: " + Main.inspection.progress + " | Chyba: " + error);
-					}				
-					
-					alert.showAndWait();
-					Main.stage.hide();
-					
-					//send the error
-					if (send && Constants.mode != Mode.DEBUG) {
-				    	try {
-				    		System.out.println("sending informations about error.");
-				    		
-					    	Email.sendMail(new Debug().getMail(), "chyba " + " (v" + Constants.PROGRAM_VERSION + ")",
-					    			error + "<br>"
-					    	+ "progress: " + Main.inspection.progress + "<br>"
-					    	+ "global errors: " + Main.globalErrors + "<br>"
-					    	+ "errors: " + Main.inspection.errors + "<br><br>"
-					    	+ "Stack trace: " + e);
-				    	} catch (Exception e) {
-				    		System.out.println("Nepodaøilo se odeslat informace o chybì.");
-				    		e.printStackTrace();
-				    	}
-					}
-					Main.endProgram();
+			Platform.runLater(() -> {
+				Alert alert = new Alert(AlertType.ERROR);
+				alert.setTitle("Chyba");
+				alert.setHeaderText("Došlo k chybì, která"
+						+ " zabránila normální funkci programu. Žádná data nebudou odeslána.");
+
+				if (showToUser) {
+					alert.setContentText("kód: " + Main.inspection.progress + " | Chyba: " + error);
 				}
+
+				alert.showAndWait();
+				Main.stage.hide();
+
+				//send the error
+				if (send && Constants.mode != Mode.DEBUG) {
+					try {
+						System.out.println("sending informations about error.");
+
+						Email.sendMail(new Debug().getMail(), "chyba " + " (v" + Constants.PROGRAM_VERSION + ")",
+								error + "<br>"
+						+ "progress: " + Main.inspection.progress + "<br>"
+						+ "global errors: " + Main.globalErrors + "<br>"
+						+ "errors: " + Main.inspection.errors + "<br><br>"
+						+ "Stack trace: " + e);
+					} catch (Exception e1) {
+						System.out.println("Nepodaøilo se odeslat informace o chybì.");
+						e1.printStackTrace();
+					}
+				}
+				Main.endProgram();
 			});
 		} catch (Exception ex) {
 			System.out.println("something went wrong in interruptInspection()");
