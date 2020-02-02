@@ -158,8 +158,7 @@ import javafx.scene.text.TextAlignment;
 		
 		if (updateAvailable) {
 			showUpdateScreen();
-			new Thread() {
-			    public void run() {
+			new Thread(() -> {
 					String error = update(updateManager);
 					if (error != null) {
 						Platform.runLater(new Runnable(){
@@ -170,8 +169,7 @@ import javafx.scene.text.TextAlignment;
 							}
 						});	
 					}
-			    }
-			}.start();
+			}).start();
 		} else {
 			checkConditionsAndStartProgram();	
 		}
@@ -360,19 +358,13 @@ import javafx.scene.text.TextAlignment;
 		stage.setScene(scene);
 		stage.show();
 	        
-		checkMark.setOnMousePressed(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent event) {
-				pane.getChildren().clear();
-				showInputNameScreen();
-			}            
+		checkMark.setOnMousePressed(event -> {
+			pane.getChildren().clear();
+			showInputNameScreen();        
 		});
-		xMark.setOnMousePressed(new EventHandler<MouseEvent>() {
-			@Override
-		    public void handle(MouseEvent event) {
+		xMark.setOnMousePressed(event -> {
 				pane.getChildren().clear();
-		        showDisagreedScreen();
-			}            
+		        showDisagreedScreen();     
 		});
 	}
 	
@@ -570,7 +562,7 @@ import javafx.scene.text.TextAlignment;
 	public void showInspectionCompletedScreen(ArrayList<String> chyby) {
 	bringToFront();
 	
-	Text txtTitle = new Text(10, 35, chyby.size() > 0 ? "Kontrola byla dokonèena s chybami. Výsledky byly odeslány."
+	Text txtTitle = new Text(10, 35, !chyby.isEmpty() ? "Kontrola byla dokonèena s chybami. Výsledky byly odeslány."
 			: "Kontrola byla dokonèena bez chyb a výsledky byly odeslány.");
 	
      txtTitle.setFont(Font.font("Verdana", TEXT_SIZE));

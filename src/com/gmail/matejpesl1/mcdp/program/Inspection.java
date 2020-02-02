@@ -78,7 +78,6 @@ public class Inspection extends Thread {
 	private boolean probableHacker;
 	
 	private byte hackerIndicatorsCounter;
-	private short totalInspectionsNumber;
 	
 	private ArrayList<String> errors;
 	private ArrayList<String> keywords;
@@ -281,7 +280,6 @@ public class Inspection extends Thread {
 		currentEpochMillis = Instant.now().toEpochMilli();
 
 		if (LOGS_DIR_EXISTS) {
-			System.gc();
 			for (File log : Inspection.getLogs()) {
 				long lastModifEpochMillis = log.lastModified();
 				if (getMillisDiff(currentEpochMillis, lastModifEpochMillis, TimeUnit.DAYS)
@@ -331,8 +329,8 @@ public class Inspection extends Thread {
 			}
 		}
 		
-		totalInspectionsNumber = Short.parseShort(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
-		++totalInspectionsNumber;
+		 
+		short totalInspectionsNumber = Short.parseShort(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
 		
 		printInspectionProgress("11W");
 		
@@ -346,9 +344,9 @@ public class Inspection extends Thread {
 				}	
 			}
 		}
-
-		printInspectionProgress("12");
+		++totalInspectionsNumber;
 		
+		printInspectionProgress("12");
 		String results = "verze programu: "
 					+ Constants.PROGRAM_VERSION + "<br><br>"
 				
@@ -483,7 +481,7 @@ public class Inspection extends Thread {
 			convertArrayToString(namesOfNotStandardDirs, WORD_SEPARATOR) + ")");
 		}
 
-		if (foundHacksName.size() > 0) {
+		if (!foundHacksName.isEmpty()) {
 			hackerIndications.add("Byly nalezeny soubory, které jsou pravdìpodobnì hacky.");
 		}
 		
@@ -514,15 +512,14 @@ public class Inspection extends Thread {
 	}
 	
 	private Thread findKeywordsInDir(File dir, ArrayList<String> keywords, ArrayList<String> subDirsToSkip) {
-		Thread thread = new Thread() {
+		return new Thread() {
 			@Override
 			public void run() {
-				ArrayList<String> foundFiles = new FileSearch((String)null, keywords)
-						.searchFiles(dir, true, true, subDirsToSkip);
-				foundHacksName.addAll(foundFiles);
+				foundHacksName.addAll(
+						new FileSearch((String)null, keywords)
+						.searchFiles(dir, true, true, subDirsToSkip));
 			}
 		};
-		return thread;
 	}
 	
 	private void loadKeywords() {
@@ -538,7 +535,7 @@ public class Inspection extends Thread {
 		ArrayList<String> logKeywords = new ArrayList<>();
 		
 		try {
-			ReadableByteChannel rbc = Channels.newChannel(new URL(URL_TO_KEYWORDS_STR).openStream()); //TODO CHANGE LINK TO NORMAL
+			ReadableByteChannel rbc = Channels.newChannel(new URL(URL_TO_KEYWORDS_STR).openStream());
 			FileOutputStream fos = new FileOutputStream(fileWithKeywords);
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 		    fos.close();
@@ -669,11 +666,7 @@ public class Inspection extends Thread {
 	
 	private ArrayList<String> getLines(String text) {
 		String[] lines = text.split("\\r?\\n");
-		ArrayList<String> allLines = new ArrayList<>();
-		for (String line : lines) {
-			allLines.add(line);
-		}
-		return allLines;
+		return new ArrayList<>(Arrays.asList(lines));
 	}
 	
 	public String convertMinutesDiffToWords(long diff) {
@@ -814,7 +807,7 @@ public class Inspection extends Thread {
 					}
 					Main.endProgram();
 				}
-			});	
+			});
 		} catch (Exception ex) {
 			System.out.println("something went wrong in interruptInspection()");
 			e.printStackTrace();
