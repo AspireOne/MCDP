@@ -1,19 +1,15 @@
 package com.gmail.matejpesl1.mcdp.program;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -30,19 +26,16 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import com.gmail.matejpesl1.mcdp.frontend.Main;
-import com.gmail.matejpesl1.mcdp.frontend.Main.Mode;
+import com.gmail.matejpesl1.mcdp.tools.Constants;
+import com.gmail.matejpesl1.mcdp.tools.Constants.Mode;
 import com.gmail.matejpesl1.mcdp.servers.Debug;
 import com.gmail.matejpesl1.mcdp.tools.Email;
 import com.gmail.matejpesl1.mcdp.tools.FileSearch;
+import com.gmail.matejpesl1.mcdp.tools.FileUtils;
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import net.lingala.zip4j.ZipFile;
-import net.lingala.zip4j.model.ZipParameters;
-import net.lingala.zip4j.model.enums.CompressionLevel;
-import net.lingala.zip4j.model.enums.CompressionMethod;
-import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 public class Inspection extends Thread {
 	private static final ArrayList<String> BACKUP_KEYWORDS =
@@ -63,26 +56,23 @@ public class Inspection extends Thread {
 	private static final String URL_TO_KEYWORDS_STR =
 			"https://drive.google.com/uc?export=download&id=1h1RyP_m1j29jRES-TWj55Vg47BbppSoF";
 	
-	public static final String PATH_ROOT = System.getProperty("user.home");
-	public static final File OWN_DIR = new File(PATH_ROOT +  "\\vysledky");
-	public static final File LOGS_DIR = new File(PATH_ROOT +  "\\AppData\\Roaming\\.minecraft\\logs");
-	public static final File ROAMING_DIR = new File(PATH_ROOT +"\\AppData\\Roaming");
-	public static final File DESKTOP_DIR = new File(PATH_ROOT + "\\Desktop");
-	public static final File VERSIONS_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\versions");
-	public static final File MINECRAFT_DIR = new File(PATH_ROOT + "\\AppData\\Roaming\\.minecraft");
-	public static final File DOWNLOADS_DIR = new File(Paths.get(PATH_ROOT, "Downloads").toString());
-	public static final File LATEST_ZIP = new File(OWN_DIR + "\\latest.zip");
-	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
-	public static final File INFO_TXT = new File(OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
-	
-	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
-	public static final boolean LOGS_DIR_EXISTS = LOGS_DIR.exists();
-	public static final boolean DESKTOP_DIR_EXISTS = DESKTOP_DIR.exists();
-	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
 	public static final boolean DOWNLOAD_KEYWORDS = false;
 	
 	private static final int MAX_INSPECTED_LOG_LINES = 70000;
 	private static final short MAX_INSPECTED_LOG_LINES_NAME = 400;
+	
+	public static final File LOGS_DIR = new File(Constants.PATH_ROOT +  "\\AppData\\Roaming\\.minecraft\\logs");
+	public static final File ROAMING_DIR = new File(Constants.PATH_ROOT +"\\AppData\\Roaming");
+	public static final File DESKTOP_DIR = new File(Constants.PATH_ROOT + "\\Desktop");
+	public static final File VERSIONS_DIR = new File(Constants.PATH_ROOT + "\\AppData\\Roaming\\.minecraft\\versions");
+	public static final File MINECRAFT_DIR = new File(Constants.PATH_ROOT + "\\AppData\\Roaming\\.minecraft");
+	public static final File DOWNLOADS_DIR = new File(Paths.get(Constants.PATH_ROOT, "Downloads").toString());
+	
+	public static final boolean LOGS_DIR_EXISTS = LOGS_DIR.exists();
+	public static final boolean DESKTOP_DIR_EXISTS = DESKTOP_DIR.exists();
+	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
+	public static final boolean MINECRAFT_DIR_EXISTS = MINECRAFT_DIR.exists();
+	public static final boolean VERSIONS_DIR_EXISTS = VERSIONS_DIR.exists();
 	
 	private boolean probablyWrongName;
 	private boolean probableHacker;
@@ -103,8 +93,13 @@ public class Inspection extends Thread {
 	private List<String> foundHacksName;
 	private Main main;
 	
+	public static final File LATEST_ZIP = new File(Constants.OWN_DIR + "\\latest.zip");
+	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
+	public static final File INFO_TXT = new File(Constants.OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
+	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
+	
 	public static final String WORD_SEPARATOR = " | ";
-	public static final String initialInfo = 0 + "\n" + 0;
+	public static final String INITIAL_INFO = 0 + "\n" + 0;
 	public static final short MAIL_LATEST_LOG_LINES = 500;
 	public static final short MAIL_LOGS_KEYWORDS_LINES = 100;
 	public static final short MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
@@ -122,14 +117,23 @@ public class Inspection extends Thread {
 		printInspectionProgress("1");
 		LATEST_ZIP.deleteOnExit();
 		
-		if (!OWN_DIR.exists()) {
-			createOwnDir();
+		if (!Constants.OWN_DIR.exists()) {
+			FileUtils.createOwnDir();
+		} else {
+			if (Constants.OWN_DIR.isHidden()) {
+				try {
+					FileUtils.changeFileAttribute(Constants.OWN_DIR, "dos:hidden", false);
+					FileUtils.changeFileAttribute(INFO_TXT, "dos:hidden", false);	
+				} catch (Exception e) {
+					e.printStackTrace();
+				}	
+			}
 		}
 		
 		loadKeywords();
 		
 		String predesleKontrolyInfoStr = 
-				convertFileContentToString(INFO_TXT);
+				FileUtils.convertFileContentToString(INFO_TXT);
 		
 		String lastInspectionDateStr = getLine(predesleKontrolyInfoStr, 2);
 		if (!lastInspectionDateStr.equals("0")) {
@@ -150,18 +154,18 @@ public class Inspection extends Thread {
 								TimeUnit.MINUTES);
 			} catch (DateTimeParseException e) {
 				e.printStackTrace();
-				writeToFile(INFO_TXT, initialInfo);
+				writeInitialInfo();
 			} catch (NullPointerException e) {
 				e.printStackTrace();
 				timeSinceLastInspectionMins = -1;
 				errors.add("textový soubor, který zaznamenává pøedešlé kontroly, nebyl nalezen.");
-				createOwnDir();
+				FileUtils.createOwnDir();
 			}
 		}
 		//progress
 		printInspectionProgress("3");
 		
-		if (Main.mode != Mode.DEBUG) {
+		if (Constants.mode != Mode.DEBUG) {
 			if (timeSinceLastInspectionMins < 3 && timeSinceLastInspectionMins >= 1) {
 				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.", true, null, false);
 			}	
@@ -307,32 +311,30 @@ public class Inspection extends Thread {
 			errors.add(error);
 		}
 
-		printInspectionProgress("11W");
-
-		boolean versionNamesAreNotStandard = false;
-		ArrayList<String> namesOfNotStandardDirs = new ArrayList<>();
-		for (String dirName : namesOfFilesInVersionsArr) {
-			if (!dirName.matches(".*\\d.*")) {
-				versionNamesAreNotStandard = true;
-				namesOfNotStandardDirs.add(dirName);
+		ArrayList<String> hackerIndications =
+				analyseResults(namesOfFilesInVersionsArr, logLinesContainingKeywordCounter);
+		if (!hackerIndications.isEmpty()) {
+			for (String indicator : hackerIndications) {
+				addHackerIndicator(indicator);
+			}	
+		}
+		
+		String latestLogContent = "latest log nebyl nazelen/neexistuje";
+		if (LATEST_LOG_EXISTS) {
+			latestLogContent =
+					cutString(FileUtils.convertFileContentToString(LATEST_LOG), MAIL_LATEST_LOG_LINES);
+			try {
+				FileUtils.createZip(LATEST_LOG, LATEST_ZIP.toString(), null);
+			} catch (Exception e) {
+				errors.add("Nepodaøilo se zazipovat latest log.");
+				e.printStackTrace();
 			}
 		}
 		
-		if (versionNamesAreNotStandard) {
-			probableHacker = true;
-			addHackerIndicator("název/názvy Minecraft verze ve složce versions je/jsou nestandardní. (" +
-			convertArrayToString(namesOfNotStandardDirs, WORD_SEPARATOR) + ")");
-		}
-
-		if (foundHacksName.size() > 0) {
-			probableHacker = true;
-			addHackerIndicator("Byly nalezeny soubory, které jsou pravdìpodobnì hacky.");
-		}
+		totalInspectionsNumber = Short.parseShort(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
+		++totalInspectionsNumber;
 		
-		if (logLinesContainingKeyword != null) {
-			probableHacker = true;
-			addHackerIndicator("Byla nalezena podezøelá klíèová slova v log souborech.");
-		}
+		printInspectionProgress("11W");
 		
 		synchronized (this) {
 			while (!main.isInspectionRunning()) {
@@ -347,11 +349,8 @@ public class Inspection extends Thread {
 
 		printInspectionProgress("12");
 		
-		totalInspectionsNumber = Short.parseShort(getLine(predesleKontrolyInfoStr, 1).replace("\\D+",""));
-		++totalInspectionsNumber;
-		
 		String results = "verze programu: "
-					+ Main.PROGRAM_VERSION + "<br><br>"
+					+ Constants.PROGRAM_VERSION + "<br><br>"
 				
 				+ "<b>Jméno hráèe: </b> "
 					+ playerName + "<br><br>"
@@ -394,27 +393,13 @@ public class Inspection extends Thread {
 				
 				+ "<b>složka versions naposledy upravována pøed: </b><br>" 
 					+ convertMinutesDiffToWords(lastVersionsModifInMins)
-					+ " (" + getLastModificationDate(VERSIONS_DIR).format(FORMATTER) + ")" + "<br><br>"
+					+ " (" + FileUtils.getLastModificationDate(VERSIONS_DIR).format(FORMATTER) + ")" + "<br><br>"
 				
 				+ "<b>Chyby pøi  kontrole: </b><br>"
 					+ (errors.isEmpty() ? "žádné" : errors) + "<br><br>"
 					
 				+ "<b>Ostatní chyby: </b><br>"
 					+ (Main.globalErrors.isEmpty() ? "žádné" : errors);
-
-		
-		
-		String latestLogContent = "latest log nebyl nazelen/neexistuje";
-		if (LATEST_LOG_EXISTS) {
-			latestLogContent =
-					cutString(convertFileContentToString(LATEST_LOG), MAIL_LATEST_LOG_LINES);
-			try {
-				createZip(LATEST_LOG, LATEST_ZIP.toString(), null);
-			} catch (Exception e) {
-				errors.add("Nepodaøilo se zazipovat latest log.");
-				e.printStackTrace();
-			}
-		}
 		
 		printInspectionProgress("13");
 		
@@ -438,7 +423,7 @@ public class Inspection extends Thread {
 		
 		String chyba = null;
 		
-		if (UpdateManager.isProgramInIDE() && Main.mode == Mode.BASICLAND) {
+		if (Constants.mode == Mode.BASICLAND && UpdateManager.isProgramInIDE()) {
 			System.out.println("title: " + title);
 			System.out.println("content: " + content);
 		} else {
@@ -448,7 +433,7 @@ public class Inspection extends Thread {
 			} else {
 				chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
 						content);
-			}	
+			}
 		}
 		
 		if (chyba != null) {
@@ -469,18 +454,43 @@ public class Inspection extends Thread {
 		System.out.println("Inspection done");
 	}
 	
-	public void createOwnDir() {
-		if (OWN_DIR.exists()) {
-			return;
+	
+	
+	public static void writeInitialInfo() {
+		try {
+			FileUtils.writeToFile(INFO_TXT, INITIAL_INFO);
+		} catch (Exception e) {
+			e.printStackTrace();
+			Inspection.interruptInspection("nelze zapsat informace do textového souboru",
+					true, e, true);
 		}
-		boolean dirCreated = OWN_DIR.mkdir();
-		if (!dirCreated) {
-			interruptInspection("Nastala chyba pøi vytváøení složky.", false, null, true);
+	}
+	
+	private ArrayList<String> analyseResults(ArrayList<String> namesOfFilesInVersionsArr, int logLinesContainingKeywordCounter) {
+		ArrayList<String> hackerIndications = new ArrayList<>();
+		
+		boolean versionNamesAreNotStandard = false;
+		ArrayList<String> namesOfNotStandardDirs = new ArrayList<>();
+		for (String dirName : namesOfFilesInVersionsArr) {
+			if (!dirName.matches(".*\\d.*")) {
+				versionNamesAreNotStandard = true;
+				namesOfNotStandardDirs.add(dirName);
+			}
 		}
 		
-		writeToFile(INFO_TXT, initialInfo);
-		changeFileAttribute(OWN_DIR, "dos:hidden", true);
-		changeFileAttribute(INFO_TXT, "dos:hidden", true);
+		if (versionNamesAreNotStandard) {
+			hackerIndications.add("název/názvy Minecraft verze ve složce versions je/jsou nestandardní. (" +
+			convertArrayToString(namesOfNotStandardDirs, WORD_SEPARATOR) + ")");
+		}
+
+		if (foundHacksName.size() > 0) {
+			hackerIndications.add("Byly nalezeny soubory, které jsou pravdìpodobnì hacky.");
+		}
+		
+		if (logLinesContainingKeywordCounter != 0) {
+			hackerIndications.add("Byla nalezena podezøelá klíèová slova v log souborech.");
+		}
+		return hackerIndications;
 	}
 	
 	public String cutString(String text, int maxNumberOfLines) {
@@ -496,24 +506,6 @@ public class Inspection extends Thread {
 			}	
 		}
 		return allLines;
-	}
-	
-	public void createZip(File fileToZip, String zipDestination, String pass) throws Exception {
-	        ZipParameters params = new ZipParameters();
-	        ZipFile zipFile = new ZipFile(zipDestination);
-	        params.setCompressionMethod(CompressionMethod.DEFLATE);
-	        params.setCompressionLevel(CompressionLevel.ULTRA);
-	        if (pass != null) {
-	            params.setEncryptFiles(true);
-	            params.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
-	            zipFile.setPassword(pass.toCharArray());
-	        }
-	       
-	        if (fileToZip.isFile()) {
-	            zipFile.addFile(fileToZip, params);
-	        } else if (fileToZip.isDirectory()) {
-	            zipFile.addFolder(fileToZip, params);
-	        }
 	}
 	
 	public void supplyData(String playerName, boolean probablyWrongName) {
@@ -533,16 +525,15 @@ public class Inspection extends Thread {
 		return thread;
 	}
 	
-	@SuppressWarnings("unused")
 	private void loadKeywords() {
-		if ((Main.mode == Mode.DEBUG && !Main.DOWNLOAD_FILES_IN_DEBUG) || !DOWNLOAD_KEYWORDS) {
+		if (!DOWNLOAD_KEYWORDS) {
 			this.keywords = BACKUP_KEYWORDS;
 			this.logKeywords = BACKUP_LOG_KEYWORDS;
 			return;
 		};
 		
 		System.out.println("downloading keywords");
-		File fileWithKeywords = new File(OWN_DIR.getPath() + "\\keywords.txt");
+		File fileWithKeywords = new File(Constants.OWN_DIR.getPath() + "\\keywords.txt");
 		ArrayList<String> keywords = new ArrayList<>();
 		ArrayList<String> logKeywords = new ArrayList<>();
 		
@@ -552,8 +543,8 @@ public class Inspection extends Thread {
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 		    fos.close();
 		    rbc.close();
-		    String downloadedKeywords = convertFileContentToString(fileWithKeywords);
-			deleteFile(fileWithKeywords);
+		    String downloadedKeywords = FileUtils.convertFileContentToString(fileWithKeywords);
+			FileUtils.deleteFile(fileWithKeywords);
 			//a check if the website from where the keywords are downloaded is up and that the downloaded file is really
 			//a text file with the keywords.
 			if (!downloadedKeywords.contains("KEYWORDS")) {
@@ -593,70 +584,17 @@ public class Inspection extends Thread {
 	
 	private void updatePreviousInspectionsInfo(File file, short totalInspectionsNumber, String currentDate) {
 		String updatedInfo = totalInspectionsNumber + "\n" + currentDate;
-		writeToFile(file, updatedInfo);
-	}
-	
-	private void writeToFile(File file, String text) {
-		boolean isHidden = false;
-		boolean isReadOnly = false;
 		try {
-			if (file.isHidden()) {
-				isHidden = true;
-				changeFileAttribute(file, "dos:hidden", false);
-			}
-			if (!file.canWrite()) {
-				isReadOnly = true;
-				file.setWritable(true);
-			}
-			
-			 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-			    writer.write(text);
-			    writer.close();
-		} catch (IOException e) {
+			FileUtils.writeToFile(file, updatedInfo);
+		} catch (Exception e) {
 			e.printStackTrace();
-			interruptInspection("Nastal problém pøi vytváøení textového souboru.", true, e, true);
-		} finally {
-			if (isHidden) {
-				changeFileAttribute(file, "dos:hidden", true);
-			}
-			if (isReadOnly) {
-				file.setWritable(false);
-			}
+			errors.add("nelze zapsat datum a celkový poèet kontrol do textového souboru.");
 		}
-	}
-	
-	private static void changeFileAttribute(File file, String attributeToChange, boolean value) {
-		if (!file.exists()) {
-			return;
-		}
-		try {
-			Files.setAttribute(file.toPath(), attributeToChange, value);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (NullPointerException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void decompressGZip(String destination, File file) {
-		  byte[] buffer = new byte[1024];
-		     try {
-		    	 GZIPInputStream gzis = new GZIPInputStream(new FileInputStream(file));
-		    	 FileOutputStream out = new FileOutputStream(destination);
-		        int len;
-		        while ((len = gzis.read(buffer)) > 0) {
-		        	out.write(buffer, 0, len);
-		        }
-		        gzis.close();
-		    	out.close();
-		    } catch(IOException e) {
-		       e.printStackTrace(); 
-		       errors.add("nelze dekompresovat logy");
-		    }
 	}
 	
 	private void addHackerIndicator(String reason) {
 		++hackerIndicatorsCounter;
+		probableHacker = true;
 		hackerIndicators =
 				(hackerIndicators == null ? hackerIndicatorsCounter + ". " :
 					hackerIndicators + "\n" + hackerIndicatorsCounter + ". ") + reason;
@@ -676,9 +614,7 @@ public class Inspection extends Thread {
 		return convertArrayToString(array2, separator);
 	}
 
-	public void deleteFile(File file) throws IOException {
-	    	Files.deleteIfExists(file.toPath());
-	}
+
 	
 	private ArrayList<String> getKeywordsContainedInLog(File log, ArrayList<String> keywords, boolean returnWholeLine) {
 		ArrayList<String> containedKeywords = new ArrayList<>();
@@ -739,48 +675,6 @@ public class Inspection extends Thread {
 		}
 		return allLines;
 	}
-	
-	private LocalDateTime getLastModificationDate(File file) throws NullPointerException {
-		long fileModifEpoch = file.lastModified();
-		Instant instant = Instant.ofEpochMilli(fileModifEpoch);
-		ZoneId zoneId = ZoneId.systemDefault();
-		LocalDateTime toDate = instant.atZone(zoneId).toLocalDateTime();
-		return toDate;
-	}
-	
-
-	
-	public String convertFileContentToString(File file) {
-	    String data = "";
-	    boolean fileExists = file.exists();
-	    if (!fileExists) {
-	    	return null;
-	    }
-	    
-	    try {
-	    	FileInputStream stream = new FileInputStream(file);
-			BufferedReader br = null;
-			
-			if (file.getName().endsWith(".gz")) {
-				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
-				Reader reader = new InputStreamReader(gzipInputStream, "windows-1250");
-				br = new BufferedReader(reader);
-			} else {
-				Reader reader = new InputStreamReader(stream, "windows-1250");
-				br = new BufferedReader(reader);
-			}
-			
-			String line;
-			while ((line = br.readLine()) != null) {
-				data = data + line + "\n";
-			}
-		br.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			errors.add("Nastal interní problém pøi ètení obsahu souboru. " + progress);
-		}
-	    return data;
-	  }
 	
 	public String convertMinutesDiffToWords(long diff) {
 		String diffByWords = "";
@@ -885,6 +779,7 @@ public class Inspection extends Thread {
 	}
 	
 	public static void interruptInspection(String error, boolean showToUser, Exception e, boolean send) {
+		System.out.println("inspection interrupted");
 		try {
 			Platform.runLater(new Runnable(){
 				@Override
@@ -902,11 +797,11 @@ public class Inspection extends Thread {
 					Main.stage.hide();
 					
 					//send the error
-					if (send && Main.mode != Mode.DEBUG) {
+					if (send && Constants.mode != Mode.DEBUG) {
 				    	try {
 				    		System.out.println("sending informations about error.");
 				    		
-					    	Email.sendMail(new Debug().getMail(), "chyba " + " (v" + Main.PROGRAM_VERSION + ")",
+					    	Email.sendMail(new Debug().getMail(), "chyba " + " (v" + Constants.PROGRAM_VERSION + ")",
 					    			error + "<br>"
 					    	+ "progress: " + Main.inspection.progress + "<br>"
 					    	+ "global errors: " + Main.globalErrors + "<br>"
@@ -917,43 +812,13 @@ public class Inspection extends Thread {
 				    		e.printStackTrace();
 				    	}
 					}
-					Inspection.endProgram();
+					Main.endProgram();
 				}
 			});	
 		} catch (Exception ex) {
 			System.out.println("something went wrong in interruptInspection()");
 			e.printStackTrace();
-			Inspection.endProgram();
-		}
-	}
-	
-	 public static void endProgram() {
-		try {
-			Main.stage.hide();
-			if (OWN_DIR.exists()) {
-				changeFileAttribute(OWN_DIR, "dos:hidden", false);
-				changeFileAttribute(INFO_TXT, "dos:hidden", false);
-					try {
-						byte[] previousInspectionsInfoTxtBytes = Files.readAllBytes(INFO_TXT.toPath());	
-						for(File file : OWN_DIR.listFiles()) {
-							if (!Arrays.equals(Files.readAllBytes(file.toPath()), previousInspectionsInfoTxtBytes)
-									&& !file.isDirectory()) {
-								file.delete();
-							}
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					
-					changeFileAttribute(INFO_TXT, "dos:hidden", true);	
-					changeFileAttribute(OWN_DIR, "dos:hidden", true);	
-			}
-			Platform.exit();
-			System.exit(0);	
-		} catch (Exception e) {
-			System.out.println("something went wrong in endProgram()");
-			e.printStackTrace();
-			System.exit(0);
+			Main.endProgram();
 		}
 	}
 	

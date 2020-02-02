@@ -1,6 +1,6 @@
 /*******************************************************
 
-* Copyright 2019 Matěj Pešl <matejpesl1@gmail.com>, All rights reserved.
+* Copyright 2020 Matěj Pešl <matejpesl1@gmail.com>, All rights reserved.
 
 *
 

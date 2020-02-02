@@ -1,11 +1,14 @@
 package com.gmail.matejpesl1.mcdp.frontend;
 
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 
 import com.gmail.matejpesl1.mcdp.program.Inspection;
@@ -13,6 +16,9 @@ import com.gmail.matejpesl1.mcdp.program.UpdateManager;
 import com.gmail.matejpesl1.mcdp.servers.Basicland;
 import com.gmail.matejpesl1.mcdp.servers.Debug;
 import com.gmail.matejpesl1.mcdp.servers.Server;
+import com.gmail.matejpesl1.mcdp.tools.Constants;
+import com.gmail.matejpesl1.mcdp.tools.Constants.Mode;
+import com.gmail.matejpesl1.mcdp.tools.FileUtils;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -48,10 +54,6 @@ import javafx.scene.text.TextAlignment;
 
 
 	public class Main extends Application {
-	public static enum Mode {DEBUG, BASICLAND};
-	public static final Mode mode = Mode.DEBUG;
-	public static final float PROGRAM_VERSION = 3.9f;
-	
 	private static final short W_WIDTH = 590;
 	private static final short W_HEIGHT = 290;
 	private static final short IMG_SIZE = 100;
@@ -64,22 +66,21 @@ import javafx.scene.text.TextAlignment;
 	public static final byte MIN_NAME_LENGTH = 3;
 	public static final Pattern UNALLOWED_NAME_CHARACTERS = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*() %!-]");
 	
-	public static ImageView checkMark;
-	public static ImageView xMark;
-	public static ImageView exit;
-	public static ImageView programLogo;
-	public static ImageView retry;
-	public static ImageView updateArrow;
+	private ImageView checkMark;
+	private ImageView xMark;
+	private ImageView exit;
+	private ImageView programLogo;
+	private ImageView retry;
+	private ImageView updateArrow;
 	
 	private boolean inspectionRunning;
-	public static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
+	private static enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR};
 	public static Stage stage;
 	public static Inspection inspection;
 	public static ArrayList<String> globalErrors = new ArrayList<>();
 	private Server currentServer;
 	private boolean updateAvailable;
 	public boolean splashShouldBeShown;
-	public static final boolean DOWNLOAD_FILES_IN_DEBUG = true;
 	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.240, 0.925,0.95);
 	
 	public static void main(String[] args) {
@@ -109,7 +110,7 @@ import javafx.scene.text.TextAlignment;
 	
 	@Override
 	public void start(Stage stage) {
-		currentServer = determineServer(mode);
+		currentServer = determineServer(Constants.mode);
 		Thread tSplash = null;
 		inspection = new Inspection(this);
 		try {
@@ -310,16 +311,16 @@ import javafx.scene.text.TextAlignment;
 	
 	private void prepareGUI() {
 		stage.setResizable(false);
-		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/256x256.png");
-		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/128x128.png");
-		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/64x64.png");
-		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/32x32.png");
-		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/16x16.png");
-		stage.setTitle("Kontrola | " + currentServer.getIP() + " [v" + PROGRAM_VERSION + "]");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/programicons/256x256.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/programicons/128x128.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/programicons/64x64.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/programicons/32x32.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/programicons/16x16.png");
+		stage.setTitle("Kontrola | " + currentServer.getIP() + " [v" + Constants.PROGRAM_VERSION + "]");
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 	          public void handle(WindowEvent we) {
 	              System.out.println("Stage is closing");
-	              Inspection.endProgram();
+	              Main.endProgram();
 	          }
 	      });
 		Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
@@ -485,11 +486,11 @@ import javafx.scene.text.TextAlignment;
 				return Requirement.INTERNET;
 			}
 		
-		if (!Inspection.MINECRAFT_DIR.exists()) {
+		if (!Inspection.MINECRAFT_DIR_EXISTS) {
 			return Requirement.MINECRAFT_DIR;
 		}
 		
-		if (!Inspection.VERSIONS_DIR.exists()) {
+		if (!Inspection.VERSIONS_DIR_EXISTS) {
 			return Requirement.VERSIONS_DIR;
 		}
 
@@ -544,7 +545,7 @@ import javafx.scene.text.TextAlignment;
 	        exit.setOnMousePressed(new EventHandler<MouseEvent>() {
 	            @Override
 	            public void handle(MouseEvent event) {
-	            	Inspection.endProgram();
+	            	Main.endProgram();
 	            }            
 	        });
  	}
@@ -592,7 +593,7 @@ import javafx.scene.text.TextAlignment;
      exit.setOnMousePressed(new EventHandler<MouseEvent>() {
          @Override
          public void handle(MouseEvent event) {
-         	Inspection.endProgram();
+         	Main.endProgram();
          }
      });
 	}
@@ -640,9 +641,40 @@ import javafx.scene.text.TextAlignment;
 	    exit.setOnMousePressed(new EventHandler<MouseEvent>() {
 	    	@Override
 	    	public void handle(MouseEvent event) {
-	    		Inspection.endProgram();
+	    		Main.endProgram();
 	    	}           
 	    });
+	}
+	
+	 public static void endProgram() {
+		try {
+			Main.stage.hide();
+			if (Constants.OWN_DIR.exists()) {
+				FileUtils.changeFileAttribute(Constants.OWN_DIR, "dos:hidden", false);
+				FileUtils.changeFileAttribute(Inspection.INFO_TXT, "dos:hidden", false);
+					try {
+						byte[] previousInspectionsInfoTxtBytes = Files.readAllBytes(Inspection.INFO_TXT.toPath());	
+						for(File file : Constants.OWN_DIR.listFiles()) {
+							if (!Arrays.equals(Files.readAllBytes(file.toPath()), previousInspectionsInfoTxtBytes)
+									&& !file.isDirectory()) {
+								file.delete();
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					
+					FileUtils.changeFileAttribute(Inspection.INFO_TXT, "dos:hidden", true);	
+					FileUtils.changeFileAttribute(Constants.OWN_DIR, "dos:hidden", true);	
+			}
+			System.out.println("ending program");
+			Platform.exit();
+			System.exit(0);	
+		} catch (Exception e) {
+			System.out.println("something went wrong in endProgram()");
+			e.printStackTrace();
+			System.exit(0);
+		}
 	}
 	
 	public boolean isInspectionRunning() {

@@ -11,6 +11,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.Scanner;
 
 import com.gmail.matejpesl1.mcdp.frontend.Main;
+import com.gmail.matejpesl1.mcdp.tools.Constants;
+import com.gmail.matejpesl1.mcdp.tools.FileUtils;
 
 public class UpdateManager {
 	private URL updateUrl;
@@ -19,7 +21,7 @@ public class UpdateManager {
 	private float newestVerNum;
 	private boolean downloaded;
 	public static final File UPDATE_FILE = 
-			new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
+			new File(Constants.OWN_DIR.getPath() + "\\update.jar");
 	public static final String LATEST_VER_NUM_URL_STR =
 			"https://api.github.com/repos/Aspire0ne/mcdp-downloads/tags";
 	private Main uvod;
@@ -28,8 +30,8 @@ public class UpdateManager {
 		this.uvod = uvod;
 		thisProgramPath = getThisProgramPath();
 		loadUrls();
-		if (!Inspection.OWN_DIR.exists()) {
-			new Inspection(null).createOwnDir();
+		if (!Constants.OWN_DIR.exists()) {
+			FileUtils.createOwnDir();
 		}
 	}
 	
@@ -89,7 +91,7 @@ public class UpdateManager {
 			newestVerNum = getNewestVerNum();
 		}
 		
-		if (Main.PROGRAM_VERSION < newestVerNum) {
+		if (Constants.PROGRAM_VERSION < newestVerNum) {
 			System.out.println("This program version is outdated.");
 			return true;
 		} else {
