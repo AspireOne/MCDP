@@ -2,6 +2,7 @@ package com.gmail.matejpesl1.mcdp.tools;
 
 import java.io.File;
 
+//a class for globally accessed constants
 public class Constants {
 	public static enum Mode {DEBUG, BASICLAND};
 	public static final Mode mode = Mode.DEBUG;
