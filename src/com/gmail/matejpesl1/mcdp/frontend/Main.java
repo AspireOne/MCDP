@@ -195,12 +195,12 @@ import javafx.scene.text.TextAlignment;
 	}
 	
 	private void loadResources() {
-		programLogo = getInternalImage("/com/gmail/matejpesl1/MCDP/resources/program_icons/256x256.png");
-		checkMark = getInternalImage("/com/gmail/matejpesl1/MCDP/resources/UI_elements/checkmark.png");
-		xMark = getInternalImage("/com/gmail/matejpesl1/MCDP/resources/UI_elements/xmark.png");
-		exit = getInternalImage("/com/gmail/matejpesl1/MCDP/resources/UI_elements/exit.png");
-		retry = getInternalImage("/com/gmail/matejpesl1/MCDP/resources/UI_elements/retry.png");
-		updateArrow = getInternalImage("/com/gmail/matejpesl1/MCDP/resources/UI_elements/update_arrow.png");
+		programLogo = getInternalImage("/com/gmail/matejpesl1/mcdp/resources/programicons/256x256.png");
+		checkMark = getInternalImage("/com/gmail/matejpesl1/mcdp/resources/UIelements/checkmark.png");
+		xMark = getInternalImage("/com/gmail/matejpesl1/mcdp/resources/UIelements/xmark.png");
+		exit = getInternalImage("/com/gmail/matejpesl1/mcdp/resources/UIelements/exit.png");
+		retry = getInternalImage("/com/gmail/matejpesl1/mcdp/resources/UIelements/retry.png");
+		updateArrow = getInternalImage("/com/gmail/matejpesl1/mcdp/resources/UIelements/update_arrow.png");
 	}
 	
 	private ImageView getInternalImage(String pathToImage) {
@@ -310,11 +310,11 @@ import javafx.scene.text.TextAlignment;
 	
 	private void prepareGUI() {
 		stage.setResizable(false);
-		addIconToStage("/com/gmail/matejpesl1/MCDP/resources/program_icons/256x256.png");
-		addIconToStage("/com/gmail/matejpesl1/MCDP/resources/program_icons/128x128.png");
-		addIconToStage("/com/gmail/matejpesl1/MCDP/resources/program_icons/64x64.png");
-		addIconToStage("/com/gmail/matejpesl1/MCDP/resources/program_icons/32x32.png");
-		addIconToStage("/com/gmail/matejpesl1/MCDP/resources/program_icons/16x16.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/256x256.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/128x128.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/64x64.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/32x32.png");
+		addIconToStage("/com/gmail/matejpesl1/mcdp/resources/program_icons/16x16.png");
 		stage.setTitle("Kontrola | " + currentServer.getIP() + " [v" + PROGRAM_VERSION + "]");
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 	          public void handle(WindowEvent we) {

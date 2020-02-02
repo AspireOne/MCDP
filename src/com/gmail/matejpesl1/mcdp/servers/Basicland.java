@@ -5,9 +5,9 @@ import java.awt.Color;
 public class Basicland implements Server {
 	private static final String IP = "mc.basicland.cz";
 	private static final String MAIL = "report@basicland.cz";
-	private static final String LOGO = "basicland-logo.png";
+	private static final String LOGO = "basicland_logo.png";
 	private static final String UPDATE_LINK =
-			"https://github.com/Aspire0ne/MCDP-downloads/releases/latest/download/MCDP-Basicland.jar";
+			"https://github.com/Aspire0ne/mcdp-downloads/releases/latest/download/mcdp-Basicland.jar";
 	private static final String NAME = "BasicLand";
 	private static final Color BORDER_COLOR = new Color(30, 144, 255,  255);
 	

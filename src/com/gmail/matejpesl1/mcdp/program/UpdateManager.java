@@ -21,7 +21,7 @@ public class UpdateManager {
 	public static final File UPDATE_FILE = 
 			new File(Inspection.OWN_DIR.getPath() + "\\update.jar");
 	public static final String LATEST_VER_NUM_URL_STR =
-			"https://api.github.com/repos/Aspire0ne/MCDP-downloads/tags";
+			"https://api.github.com/repos/Aspire0ne/mcdp-downloads/tags";
 	private Main uvod;
 	
 	public UpdateManager(Main uvod) throws URISyntaxException, MalformedURLException {

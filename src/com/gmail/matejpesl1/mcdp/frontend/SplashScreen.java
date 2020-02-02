@@ -69,7 +69,7 @@ public class SplashScreen extends JWindow implements Runnable {
     }
     
     public static URL getLogo(String resourceName) {
-        return SplashScreen.class.getResource("/com/gmail/matejpesl1/MCDP/resources/logos/" + resourceName);
+        return SplashScreen.class.getResource("/com/gmail/matejpesl1/mcdp/resources/logos/" + resourceName);
     }
 
 	@Override
