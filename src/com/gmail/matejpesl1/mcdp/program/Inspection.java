@@ -381,7 +381,9 @@ public class Inspection extends Thread {
 				+ "<b>Pøedešlá kontrola probìhla pøed: </b><br>"
 					+ (totalInspectionsNumber <= 1 ? "žádné pøedešlé kontroly neprobìhly" :
 					convertMinutesDiffToWords(timeSinceLastInspectionMins)
-							+ " (" + lastInspectionDate.format(FORMATTER) + ")") + "<br><br>"
+							+ " (" + (lastInspectionDate == null ? "datum bylo poškozené,"
+									+ " nejspíše zapsáno starší verzí programu. Probìhla oprava." :
+								lastInspectionDate.format(FORMATTER)) + ")") + "<br><br>"
 				
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>"
 					+ (foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
