@@ -4,6 +4,7 @@ import java.awt.*;
 import java.net.URL;
 import javax.swing.*;
 
+@SuppressWarnings("serial")
 public class SplashScreen extends JWindow implements Runnable {
 	private final Color borderColor;
     private final URL resourceURL;

@@ -73,7 +73,7 @@ import javafx.scene.text.TextAlignment;
 	private boolean inspectionRunning;
 	private enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR}
 
-		public static Stage stage;
+	public static Stage stage;
 	public static Inspection inspection;
 	public static final ArrayList<String> globalErrors = new ArrayList<>();
 	private Server currentServer;
