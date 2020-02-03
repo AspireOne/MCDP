@@ -131,12 +131,20 @@ public class Inspection extends Thread {
 		
 		loadKeywords();
 		
-		String predesleKontrolyInfoStr = 
+		String txtInfoStr = 
 				FileUtils.convertFileContentToString(INFO_TXT);
 		
-		String lastInspectionDateStr = getLine(predesleKontrolyInfoStr, 2);
+		String lastInspectionDateStr = getLine(txtInfoStr, 2);
 		if (!lastInspectionDateStr.equals("0")) {
-			lastInspectionDate = LocalDateTime.parse(lastInspectionDateStr, FORMATTER);	
+			try {
+				lastInspectionDate = LocalDateTime.parse(lastInspectionDateStr, FORMATTER);		
+			} catch (Exception e) {
+				e.printStackTrace();
+				lastInspectionDateStr = "0";
+				errors.add("Špatnì zapsané datum, pravdìpodobnì zapsané pomocí"
+						+ " starší verze programu. Probìhla oprava.");
+				writeInitialInfo();
+			}
 		}
 		
 		long timeSinceLastInspectionMins = 0;
@@ -335,7 +343,7 @@ public class Inspection extends Thread {
 		
 		 
 		short totalInspectionsNumber =
-				Short.parseShort(getLine(predesleKontrolyInfoStr, 1)
+				Short.parseShort(getLine(txtInfoStr, 1)
 						.replace("\\D+",""));
 		
 		printInspectionProgress("11W");

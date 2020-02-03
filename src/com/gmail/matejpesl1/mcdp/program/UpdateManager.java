@@ -3,7 +3,6 @@ package com.gmail.matejpesl1.mcdp.program;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
