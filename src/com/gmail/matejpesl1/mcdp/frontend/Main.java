@@ -72,8 +72,8 @@ import javafx.scene.text.TextAlignment;
 	
 	private boolean inspectionRunning;
 	private enum Requirement{INTERNET, MINECRAFT_DIR, VERSIONS_DIR}
-
-	public static Stage stage;
+	
+	public static Stage stage; 
 	public static Inspection inspection;
 	public static final ArrayList<String> globalErrors = new ArrayList<>();
 	private Server currentServer;
@@ -82,6 +82,7 @@ import javafx.scene.text.TextAlignment;
 	private static final Color BACKGROUND_COLOR = new Color(0.5, 0.240, 0.925,0.95);
 	
 	public static void main(String[] args) {
+		System.out.println("main started");
 		setUncatchedExceptionHandler();
 		launch(args);
 	}
