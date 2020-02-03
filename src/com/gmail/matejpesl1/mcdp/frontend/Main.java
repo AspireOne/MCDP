@@ -143,47 +143,48 @@ import javafx.scene.text.TextAlignment;
 
 		UpdateManager updateManager = updateManagerTemp;
 		updateManagerTemp = null;
-			
-		//turn off splash
+		
+		if (updateAvailable) {
+			showUpdateScreen(tSplash);
+			new Thread(() -> {
+					String error = update(updateManager);
+					if (error != null) {
+						Platform.runLater(() -> {
+							handleErrorInUpdateProcess(error, null);
+							checkConditionsAndStartProgram(tSplash);
+						});
+					}
+			}).start();
+		} else {
+			checkConditionsAndStartProgram(tSplash);
+		}
+	}
+	
+	private void turnOffSplash(Thread tSplash) {
 		if (splashShouldBeShown) {
 			splashShouldBeShown = false;
 			synchronized(tSplash) {
 				tSplash.interrupt();
 			}
 		}
-		
-		if (updateAvailable) {
-			showUpdateScreen();
-			new Thread(() -> {
-					String error = update(updateManager);
-					if (error != null) {
-						Platform.runLater(() -> {
-							handleErrorInUpdateProcess(error, null);
-							checkConditionsAndStartProgram();
-						});
-					}
-			}).start();
-		} else {
-			checkConditionsAndStartProgram();	
-		}
 	}
 	
-	public void checkConditionsAndStartProgram() {
+	public void checkConditionsAndStartProgram(Thread tSplash) {
 		Requirement unfulfilledCondition = getUnfulfilledCondition();
 		if (unfulfilledCondition == null) {
-			startProgram();
+			startProgram(tSplash);
 		} else {
-			showUnfulfilledConditionScreen(unfulfilledCondition);
+			showUnfulfilledConditionScreen(unfulfilledCondition, tSplash);
 		}
 	}
 	
-	public void startProgram() {
+	public void startProgram(Thread tSplash) {
 		inspection.start();
 		//just a workaround
 		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
 		stage.show();
 		//end of workaround
-		showAgreementScreen();
+		showAgreementScreen(tSplash);
 	}
 	
 	private void loadResources() {
@@ -246,7 +247,7 @@ import javafx.scene.text.TextAlignment;
 		showInspectionRunningScreen(state);
 	}
 	
-	private void showUpdateScreen() {
+	private void showUpdateScreen(Thread tSplash) {
         Text txtProgress = new Text(10, 35, "Byla nalezena nová verze! Probíhá stahování a program bude restartován...");
         txtProgress.setFont(Font.font("Verdana", TEXT_SIZE));
         txtProgress.setTextAlignment(TextAlignment.CENTER);
@@ -265,6 +266,7 @@ import javafx.scene.text.TextAlignment;
 		Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 		stage.setScene(scene);
 		stage.show();
+		turnOffSplash(tSplash);
 	}
 	
 	private String update(UpdateManager updateManager) {
@@ -321,7 +323,7 @@ import javafx.scene.text.TextAlignment;
 		stage.getIcons().add(new Image(getInternalFile(pathToIcon).toString()));
 	}
 	
-	private void showAgreementScreen() {
+	private void showAgreementScreen(Thread tSplash) {
 		checkMark.setX((W_WIDTH/2 - IMG_SIZE/2) - IMGS_OFFSET);
 	    checkMark.setY(DEFAULT_IMG_Y);
 	    checkMark.setFitHeight(IMG_SIZE);
@@ -348,6 +350,9 @@ import javafx.scene.text.TextAlignment;
 		Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 		stage.setScene(scene);
 		stage.show();
+		if (tSplash != null) {
+			turnOffSplash(tSplash);	
+		}
 	        
 		checkMark.setOnMousePressed(event -> {
 			pane.getChildren().clear();
@@ -474,7 +479,7 @@ import javafx.scene.text.TextAlignment;
 		return null;
 	}
 	
-	private void showUnfulfilledConditionScreen(Requirement podminka) {
+	private void showUnfulfilledConditionScreen(Requirement podminka, Thread tSplash) {
 	        Text txtTitle = new Text(10, 35, "Nelze pokraèovat, protože");
 	        txtTitle.setFont(Font.font("Verdana", TEXT_SIZE));
 	        txtTitle.setTextAlignment(TextAlignment.CENTER);
@@ -510,10 +515,11 @@ import javafx.scene.text.TextAlignment;
 	        Scene scene = new Scene(pane, W_WIDTH, W_HEIGHT);
 	        stage.setScene(scene);
 	        stage.show();
+	        turnOffSplash(tSplash);	
 	        
 	        retry.setOnMousePressed(event -> {
 				pane.getChildren().clear();
-				checkConditionsAndStartProgram();
+				checkConditionsAndStartProgram(null);
 			});
 	        
 	        exit.setOnMousePressed(event -> Main.endProgram());
@@ -596,7 +602,7 @@ import javafx.scene.text.TextAlignment;
 	        
 	    retry.setOnMousePressed(event -> {
 			pane.getChildren().clear();
-			showAgreementScreen();
+			showAgreementScreen(null);
 		});
 	        
 	    exit.setOnMousePressed(event -> Main.endProgram());
