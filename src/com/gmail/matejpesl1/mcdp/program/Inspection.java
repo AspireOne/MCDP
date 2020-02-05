@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
@@ -287,7 +286,7 @@ public class Inspection extends Thread {
 		printInspectionProgress("10");
 		String foundHackKeywordsStr = convertArrayToString(foundHacksName, WORD_SEPARATOR);
 		
-		String logLinesContainingKeyword = null;
+		StringBuilder logLinesContainingKeyword = new StringBuilder();
 		int logLinesContainingKeywordCounter = 0;
 		currentEpochMillis = Instant.now().toEpochMilli();
 
@@ -309,15 +308,13 @@ public class Inspection extends Thread {
 						if (logLinesContainingKeywordCounter >= MAIL_LOGS_KEYWORDS_LINES) {
 							break;
 						}
-						logLinesContainingKeyword =
-								(logLinesContainingKeyword == null ? "" :
-									logLinesContainingKeyword) + logLineWithKeyword;
+						logLinesContainingKeyword.append(logLineWithKeyword);
 					}
 				}
 			}	
 		} else {
 			String error = "složka s logy nebyla nalezena";
-			logLinesContainingKeyword = "nebyla nalezena složka s logy";
+			logLinesContainingKeyword.append("nebyla nalezena složka s logy");
 			errors.add(error);
 		}
 
@@ -501,17 +498,17 @@ public class Inspection extends Thread {
 	
 	public String cutString(String text, int maxNumberOfLines) {
 		String[] lines = text.split("\\r?\\n");
-		String allLines = null;
+		StringBuilder allLines = new StringBuilder();
 		int currentLinePos = 0;
 		for (String line : lines) {
 			++currentLinePos;
 			if (currentLinePos <= maxNumberOfLines) {
-				allLines = (allLines == null ? "" : allLines + "\n") + line;
+				allLines.append(allLines == null ? "" : "\n").append(line);
 			} else {
 				break;
 			}	
 		}
-		return allLines;
+		return allLines.toString();
 	}
 	
 	public void supplyData(String playerName, boolean probablyWrongName) {
@@ -601,12 +598,13 @@ public class Inspection extends Thread {
 	}
 	
 	private String convertArrayToString(ArrayList<String> array, String separator) {
-		String finalString = null;
+		StringBuilder finalString = new StringBuilder();
 
 		for (String item : array) {
-			finalString = (finalString == null ? "" : finalString + separator) + item;
+			finalString.append(finalString == null ? "" : separator).append(item);
 		}
-		return finalString;
+		
+		return finalString.toString();
 	}
 	
 	private String convertArrayToString(List<String> array, String separator) {
@@ -624,20 +622,19 @@ public class Inspection extends Thread {
 		
 		try {
 			FileInputStream stream = new FileInputStream(log);
-			BufferedReader br;
+			Reader reader;
 			
 			if (log.getName().endsWith(".gz")) {
 				GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
-				Reader reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
-				br = new BufferedReader(reader);
+				reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
 			} else {
-				Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
-				br = new BufferedReader(reader);
+				reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
 			}
+			BufferedReader br = new BufferedReader(reader);
 			
 			String line;
 			short lineCounter = 0;
-			while ((line = br.readLine()) != null && ++lineCounter <= MAX_INSPECTED_LOG_LINES) {
+			while ((line = br.readLine()) != null && (++lineCounter <= MAX_INSPECTED_LOG_LINES)) {
 	            if (!line.contains("[CHAT]")) {
 	            	for (String keyword : keywords) {
 	            		if (line.contains(keyword)) {
@@ -657,19 +654,11 @@ public class Inspection extends Thread {
 	
 	private String getLine(String text, int linePosition) {
         String[] lines = text.split("\\r?\\n");
-        int i = 0;
-        for (String line : lines) {
-        	++i;
-        	if (i == linePosition) {
-        		return line;
-        	}
-        }
-        return null;
+        return lines[linePosition - 1];
 	}
 	
 	private ArrayList<String> getLines(String text) {
-		String[] lines = text.split("\\r?\\n");
-		return new ArrayList<>(Arrays.asList(lines));
+		return new ArrayList<>(Arrays.asList(text.split("\\r?\\n")));
 	}
 	
 	public String convertMinutesDiffToWords(long diff) {
@@ -689,7 +678,7 @@ public class Inspection extends Thread {
 		
 		else if (diff >= oneDayInMins) {
 			long diffInDays = (diff/60)/24;
-			long remainingHours = (diff/60) % 24;
+			long remainingHours = (diff/60)%24;
 			diffByWords = diffInDays + (diffInDays == 1 ? " dnem " : " dny ")
 				+ " a " + remainingHours + (remainingHours == 1 ? " hodinou." : " hodinami.");
 		}
@@ -700,10 +689,10 @@ public class Inspection extends Thread {
 		if (logs.isEmpty()) {
 			ArrayList<String> pathsToLogs = getPathsToLogs();
 			for (String pathToLog : pathsToLogs) {
-				Inspection.logs.add(new File(pathToLog));
+				logs.add(new File(pathToLog));
 			}
 		}
-		return Inspection.logs;
+		return logs;
 	}
 	
 	public static ArrayList<String> getPathsToLogs() {
@@ -728,22 +717,21 @@ public class Inspection extends Thread {
 			try {
 				FileInputStream stream = new FileInputStream(log);
 				BufferedReader br;
+				Reader reader;
 				
 				if (log.getName().endsWith(".gz")) {
 					GZIPInputStream gzipInputStream = new GZIPInputStream(stream);
-					Reader reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
-					br = new BufferedReader(reader);
+					reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
 				} else {
-					Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
-					br = new BufferedReader(reader);
+					reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
 				}
+				br = new BufferedReader(reader);
 				
 				String line;
 				int lineCounter = 0;
-				while ((line = br.readLine()) != null && ++lineCounter <= MAX_INSPECTED_LOG_LINES_NAME) {
+				while ((line = br.readLine()) != null && (++lineCounter < MAX_INSPECTED_LOG_LINES_NAME)) {
 		            if (!line.contains("[CHAT]")) {
-		            	Matcher matcher = namePattern.matcher(line);
-		            	if (matcher.find()) {
+		            	if (namePattern.matcher(line).find()) {
 		            		return true;
 		            	}
 		            }
