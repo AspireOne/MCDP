@@ -1,5 +1,33 @@
 package com.gmail.matejpesl1.mcdp.frontend;
 
+import com.gmail.matejpesl1.mcdp.program.Inspection;
+import com.gmail.matejpesl1.mcdp.program.UpdateManager;
+import com.gmail.matejpesl1.mcdp.servers.Basicland;
+import com.gmail.matejpesl1.mcdp.servers.Debug;
+import com.gmail.matejpesl1.mcdp.servers.Server;
+import com.gmail.matejpesl1.mcdp.tools.Constants;
+import com.gmail.matejpesl1.mcdp.tools.Constants.Mode;
+import com.gmail.matejpesl1.mcdp.tools.FileUtils;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
+
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -10,44 +38,6 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Pattern;
-
-import com.gmail.matejpesl1.mcdp.program.Inspection;
-import com.gmail.matejpesl1.mcdp.program.UpdateManager;
-import com.gmail.matejpesl1.mcdp.servers.Basicland;
-import com.gmail.matejpesl1.mcdp.servers.Debug;
-import com.gmail.matejpesl1.mcdp.servers.Server;
-import com.gmail.matejpesl1.mcdp.tools.Constants;
-import com.gmail.matejpesl1.mcdp.tools.Constants.Mode;
-import com.gmail.matejpesl1.mcdp.tools.FileUtils;
-
-import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.geometry.Rectangle2D;
-import javafx.stage.Screen;
-import javafx.stage.Stage;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.CornerRadii;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
 
 
 	public class Main extends Application {
@@ -180,10 +170,10 @@ import javafx.scene.text.TextAlignment;
 	
 	public void startProgram(Thread tSplash) {
 		inspection.start();
-		//just a workaround
+		//just a workaround.
 		stage.setScene(new Scene(new BorderPane(), W_WIDTH, W_HEIGHT));
 		stage.show();
-		//end of workaround
+		//end of workaround.
 		showAgreementScreen(tSplash);
 	}
 	
