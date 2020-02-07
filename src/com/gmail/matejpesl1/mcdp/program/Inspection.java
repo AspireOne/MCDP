@@ -501,7 +501,6 @@ public class Inspection extends Thread {
 		StringBuilder allLines = new StringBuilder();
 
 		for (int i = 0; i < maxNumberOfLines && i < lines.length; ++i) {
-			System.out.println("line: " + i);
 			allLines.append(lines[i]).append("\n");
 		}
 		
@@ -700,7 +699,7 @@ public class Inspection extends Thread {
 				.searchFiles(LOGS_DIR, true, false, null);
 	}
 	
-	public boolean isNameInLogs(String name) {
+	public boolean isNameValid(String name) {
 		String nameRegex = "\\b" + name + "\\b";
 		Pattern namePattern = Pattern.compile(nameRegex);
 		long currentEpochMillis = Instant.now().toEpochMilli();

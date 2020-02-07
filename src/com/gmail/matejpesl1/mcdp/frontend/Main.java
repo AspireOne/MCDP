@@ -420,7 +420,7 @@ import java.util.regex.Pattern;
 			return "Formát jména není správný.";
 		}
 		
-		if (!inspection.isNameInLogs(name)) {
+		if (!inspection.isNameValid(name)) {
 			nameNotFoundInLogs = true;
 			Alert alert = new Alert(AlertType.CONFIRMATION);
 			alert.setTitle("Potenciánì nesprávné jméno!");
