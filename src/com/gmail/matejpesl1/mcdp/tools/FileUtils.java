@@ -104,8 +104,7 @@ public class FileUtils {
 	}
 	
 	public static void createOwnDir() {
-		if (Constants.OWN_DIR.exists()) {
-			return;
+		if (!Constants.OWN_DIR.exists()) {
 		}
 		boolean dirCreated = Constants.OWN_DIR.mkdir();
 		if (!dirCreated) {

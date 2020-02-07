@@ -106,9 +106,11 @@ public class Inspection extends Thread {
 	
 	public Inspection(Main main) {
 		printInspectionProgress("0.5");
+		
 		this.main = main;
 		errors = new ArrayList<>();
 		foundHacksName = Collections.synchronizedList(new ArrayList<>());
+		
 	}
 	
 	public void doInspection() {
@@ -140,9 +142,9 @@ public class Inspection extends Thread {
 			} catch (Exception e) {
 				e.printStackTrace();
 				lastInspectionDateStr = "0";
+				writeInitialInfo();
 				errors.add("Špatnì zapsané datum, pravdìpodobnì zapsané pomocí"
 						+ " starší verze programu. Probìhla oprava.");
-				writeInitialInfo();
 			}
 		}
 		
@@ -457,8 +459,6 @@ public class Inspection extends Thread {
 		System.out.println("Inspection done");
 	}
 	
-	
-	
 	public static void writeInitialInfo() {
 		try {
 			FileUtils.writeToFile(INFO_TXT, INITIAL_INFO);
@@ -499,15 +499,12 @@ public class Inspection extends Thread {
 	public String cutString(String text, int maxNumberOfLines) {
 		String[] lines = text.split("\\r?\\n");
 		StringBuilder allLines = new StringBuilder();
-		int currentLinePos = 0;
-		for (String line : lines) {
-			++currentLinePos;
-			if (currentLinePos <= maxNumberOfLines) {
-				allLines.append(allLines == null ? "" : "\n").append(line);
-			} else {
-				break;
-			}	
+
+		for (int i = 0; i < maxNumberOfLines && i < lines.length; ++i) {
+			System.out.println("line: " + i);
+			allLines.append(lines[i]).append("\n");
 		}
+		
 		return allLines.toString();
 	}
 	
@@ -524,8 +521,7 @@ public class Inspection extends Thread {
 	
 	private void loadKeywords() {
 		if (!DOWNLOAD_KEYWORDS) {
-			this.keywords = BACKUP_KEYWORDS;
-			this.logKeywords = BACKUP_LOG_KEYWORDS;
+			setBackupKeywords();
 			return;
 		}
 
@@ -545,8 +541,7 @@ public class Inspection extends Thread {
 			//a check if the website from where the keywords are downloaded is up and that the downloaded file is really
 			//a text file with the keywords.
 			if (!downloadedKeywords.contains("KEYWORDS")) {
-				this.keywords = BACKUP_KEYWORDS;
-				this.logKeywords = BACKUP_LOG_KEYWORDS;
+				setBackupKeywords();
 				return;
 			}
 			
@@ -569,14 +564,18 @@ public class Inspection extends Thread {
 				}
 			}
 		} catch (Exception e) {
-			System.out.println("Chyba pøi stahování klíèových slov");
+			System.out.println("Chyba pøi stahování klíèových slov, použity záložní");
 			e.printStackTrace();
-			this.keywords = BACKUP_KEYWORDS;
-			this.logKeywords = BACKUP_LOG_KEYWORDS;
+			setBackupKeywords();
 			return;
 		}
 		this.keywords = keywords;
 		this.logKeywords = logKeywords;
+	}
+	
+	private void setBackupKeywords() {
+		this.keywords = BACKUP_KEYWORDS;
+		this.logKeywords = BACKUP_LOG_KEYWORDS;
 	}
 	
 	private void updatePreviousInspectionsInfo(File file, short totalInspectionsNumber, String currentDate) {
@@ -760,8 +759,8 @@ public class Inspection extends Thread {
 	
 	public static void interruptInspection(String error, boolean showToUser, Exception e, boolean send) {
 		System.out.println("inspection interrupted");
-		try {
-			Platform.runLater(() -> {
+		Platform.runLater(() -> {
+			try {
 				Alert alert = new Alert(AlertType.ERROR);
 				alert.setTitle("Chyba");
 				alert.setHeaderText("Došlo k chybì, která"
@@ -773,29 +772,32 @@ public class Inspection extends Thread {
 
 				alert.showAndWait();
 				Main.stage.hide();
-
-				//send the error
-				if (send && Constants.mode != Mode.DEBUG) {
-					try {
-						System.out.println("sending informations about error.");
-
-						Email.sendMail(new Debug().getMail(), "chyba " + " (v" + Constants.PROGRAM_VERSION + ")",
-								error + "<br>"
-						+ "progress: " + Main.inspection.progress + "<br>"
-						+ "global errors: " + Main.globalErrors + "<br>"
-						+ "errors: " + Main.inspection.errors + "<br><br>"
-						+ "Stack trace: " + e);
-					} catch (Exception e1) {
-						System.out.println("Nepodaøilo se odeslat informace o chybì.");
-						e1.printStackTrace();
-					}
+				
+				if (send) {
+					Inspection.sendInfoAboutError(error, e);	
 				}
+			} catch (Exception ex) {
+				System.err.println("something went wrong in interruptInspection()");
+				e.printStackTrace();
+			} finally {
 				Main.endProgram();
-			});
-		} catch (Exception ex) {
-			System.out.println("something went wrong in interruptInspection()");
-			e.printStackTrace();
-			Main.endProgram();
+			}
+		});
+	}
+	
+	private static void sendInfoAboutError(String error, Exception e) {
+		try {
+			System.out.println("sending informations about error.");
+
+			Email.sendMail(new Debug().getMail(), "chyba " + " (v" + Constants.PROGRAM_VERSION + ")",
+					error + "<br>"
+			+ "progress: " + Main.inspection.progress + "<br>"
+			+ "global errors: " + Main.globalErrors + "<br>"
+			+ "errors: " + Main.inspection.errors + "<br><br>"
+			+ "Stack trace: " + e);
+		} catch (Exception e1) {
+			System.err.println("Nepodaøilo se odeslat informace o chybì.");
+			e1.printStackTrace();
 		}
 	}
 	
