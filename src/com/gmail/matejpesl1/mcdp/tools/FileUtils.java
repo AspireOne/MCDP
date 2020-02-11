@@ -1,27 +1,19 @@
 package com.gmail.matejpesl1.mcdp.tools;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.zip.GZIPInputStream;
-
 import com.gmail.matejpesl1.mcdp.frontend.Main;
 import com.gmail.matejpesl1.mcdp.program.Inspection;
-
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.CompressionLevel;
 import net.lingala.zip4j.model.enums.CompressionMethod;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.zip.GZIPInputStream;
 
 public class FileUtils {
 	private FileUtils() {
@@ -61,9 +53,8 @@ public class FileUtils {
 	}
 	
 	public static String convertFileContentToString(File file) {
-	    boolean fileExists = file.exists();
-	    if (!fileExists) {
-	    	return null;
+	    if (!file.exists()) {
+	    	return "";
 	    }
 
 		StringBuilder data = new StringBuilder();
@@ -105,6 +96,7 @@ public class FileUtils {
 	
 	public static void createOwnDir() {
 		if (!Constants.OWN_DIR.exists()) {
+			return;
 		}
 		boolean dirCreated = Constants.OWN_DIR.mkdir();
 		if (!dirCreated) {

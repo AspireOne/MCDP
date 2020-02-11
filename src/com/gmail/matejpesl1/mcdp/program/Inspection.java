@@ -1,11 +1,17 @@
 package com.gmail.matejpesl1.mcdp.program;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import com.gmail.matejpesl1.mcdp.frontend.Main;
+import com.gmail.matejpesl1.mcdp.servers.Debug;
+import com.gmail.matejpesl1.mcdp.tools.Constants;
+import com.gmail.matejpesl1.mcdp.tools.Constants.Mode;
+import com.gmail.matejpesl1.mcdp.tools.Email;
+import com.gmail.matejpesl1.mcdp.tools.FileSearch;
+import com.gmail.matejpesl1.mcdp.tools.FileUtils;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+
+import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -23,18 +29,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
-
-import com.gmail.matejpesl1.mcdp.frontend.Main;
-import com.gmail.matejpesl1.mcdp.tools.Constants;
-import com.gmail.matejpesl1.mcdp.tools.Constants.Mode;
-import com.gmail.matejpesl1.mcdp.servers.Debug;
-import com.gmail.matejpesl1.mcdp.tools.Email;
-import com.gmail.matejpesl1.mcdp.tools.FileSearch;
-import com.gmail.matejpesl1.mcdp.tools.FileUtils;
-
-import javafx.application.Platform;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 
 public class Inspection extends Thread {
 	private static final ArrayList<String> BACKUP_KEYWORDS =
@@ -131,7 +125,6 @@ public class Inspection extends Thread {
 				player.setLastInspectionDate(LocalDateTime.parse(lastInspectionDateStr, FORMATTER));
 			} catch (Exception e) {
 				e.printStackTrace();
-				lastInspectionDateStr = "0";
 				writeInitialInfo();
 				errors.add("Špatnì zapsané datum, pravdìpodobnì zapsané pomocí"
 						+ " starší verze programu. Probìhla oprava.");

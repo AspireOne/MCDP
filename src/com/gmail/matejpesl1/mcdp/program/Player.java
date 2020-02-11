@@ -107,7 +107,7 @@ public class Player {
 		switch (unit) {
 		case NANOSECONDS: return TimeUnit.MINUTES.toNanos(timeSinceLastInspectionMin);
 		case MICROSECONDS: return TimeUnit.MINUTES.toMicros(timeSinceLastInspectionMin);
-		case MILLISECONDS: return TimeUnit.MINUTES.toNanos(timeSinceLastInspectionMin);
+		case MILLISECONDS: return TimeUnit.MINUTES.toMillis(timeSinceLastInspectionMin);
 		case SECONDS: return TimeUnit.MINUTES.toSeconds(timeSinceLastInspectionMin);
 		case MINUTES: return timeSinceLastInspectionMin;
 		case HOURS: return TimeUnit.MINUTES.toHours(timeSinceLastInspectionMin);
