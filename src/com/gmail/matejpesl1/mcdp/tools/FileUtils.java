@@ -60,7 +60,7 @@ public class FileUtils {
 		}
 	}
 	
-	public static java.lang.String convertFileContentToString(File file) {
+	public static String convertFileContentToString(File file) {
 	    boolean fileExists = file.exists();
 	    if (!fileExists) {
 	    	return null;

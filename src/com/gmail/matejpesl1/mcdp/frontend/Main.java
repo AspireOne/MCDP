@@ -371,21 +371,20 @@ import java.util.regex.Pattern;
 		
 		Button confirm = new Button("Potvrdit");
 		confirm.setFont(Font.font("Verdana", 20));
-		confirm.setMinWidth(140);
+		confirm.setMinWidth(150);
 		confirm.setMinHeight(60);
 		     
 		Label errorArea = new Label();
 		errorArea.setFont(Font.font("Verdana", FontWeight.BOLD, TEXT_SIZE - 4));
 		errorArea.setTextFill(Color.web("#0d0d0d"));
-		
 		errorArea.setWrapText(true);
 		     
 		HBox hBox = new HBox();
 		hBox.setSpacing(10);
 		hBox.getChildren().addAll(confirm, errorArea);
-		     
+
 		vBox.getChildren().addAll(txtTitle, nameArea, hBox);
-		     
+
 		Scene scene = new Scene(vBox, W_WIDTH, W_HEIGHT);
 		     
 		stage.setScene(scene);
@@ -395,6 +394,20 @@ import java.util.regex.Pattern;
 			String error = handleBeginPress(nameArea.getText());
 			nameArea.clear();
 			errorArea.setText(error);
+		});
+		
+		nameArea.textProperty().addListener(event -> {
+			String name = nameArea.getText();
+			boolean isFormatCorrect = isNameFormatCorrect(name);
+			
+			if (!isFormatCorrect || name.length() > MAX_NAME_LENGTH) {
+				nameArea.setText(name.substring(0, name.length() - 1));
+				nameArea.positionCaret(nameArea.getLength());
+				errorArea.setText(isFormatCorrect ?
+						"Délka nesmí pøekroèit 16 znakù" : "Neplatný znak");
+			} else {
+				errorArea.setText("");
+			}
 		});
 		     
 		nameArea.addEventFilter(KeyEvent.KEY_PRESSED, key -> {
@@ -415,13 +428,19 @@ import java.util.regex.Pattern;
 	}
 	
 	public String handleBeginPress(String name) {
-		boolean nameNotFoundInLogs = false;
-		if (!isNameFormatCorrect(name)) {
-			return "Formát jména není správný.";
+		boolean notFoundInLogs = false;
+		boolean isFormatCorrect = isNameFormatCorrect(name);
+		boolean isLengthCorrect = isNameLengthCorrect(name);
+		if (!isFormatCorrect && !isLengthCorrect) {
+			return "Formát a délka jména nejsou správné";
+		} else if (!isFormatCorrect) {
+			return "Formát jména není správný";
+		} else if (!isLengthCorrect) {
+			return "Délka jména není správná";
 		}
 		
 		if (!inspection.isNameValid(name)) {
-			nameNotFoundInLogs = true;
+			notFoundInLogs = true;
 			Alert alert = new Alert(AlertType.CONFIRMATION);
 			alert.setTitle("Potenciánì nesprávné jméno!");
 			alert.setHeaderText("Jméno nebylo nalezeno. Opravdu se jedná o vaše hráèské jméno a chcete pokraèovat?");
@@ -435,14 +454,17 @@ import java.util.regex.Pattern;
 			    return "zadejte správné jméno";
 			}
 		}
-		startInspection(name, nameNotFoundInLogs);
+		startInspection(name, notFoundInLogs);
 		return "";
 	}
 	
 	public boolean isNameFormatCorrect(String name) {
-		return (name.length() >= MIN_NAME_LENGTH && name.length() <= MAX_NAME_LENGTH &&
-				!UNALLOWED_NAME_CHARACTERS.matcher(name).find() &&
+		return (!UNALLOWED_NAME_CHARACTERS.matcher(name).find() &&
 				Normalizer.isNormalized(name, Normalizer.Form.NFD));
+	}
+	
+	public boolean isNameLengthCorrect(String name) {
+		return (name.length() >= MIN_NAME_LENGTH && name.length() <= MAX_NAME_LENGTH);
 	}
 	
 	private Requirement getUnfulfilledCondition() {

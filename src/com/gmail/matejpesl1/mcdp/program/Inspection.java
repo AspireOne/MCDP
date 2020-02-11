@@ -52,13 +52,21 @@ public class Inspection extends Thread {
 			"forgehax", "hack", "autosoup", "antiknockback", "tpaura", "tp-aura", "regen", "blink", 
 			"nofall", "no-fall", "autosoup", "velocity", "novelocity", "nuker", "xray", "x-ray"));
 	
+	//both are initialized at the start of inspection, in the doInspection() method
+	private ArrayList<String> fileKeywords;
+	private ArrayList<String> logKeywords;
+	private final ArrayList<String> errors = new ArrayList<>();
+	private static final ArrayList<File> logs = new ArrayList<>();
+	
+	public String progress;
+	public static final String WORD_SEPARATOR = " | ";
+	public static final String INITIAL_INFO = 0 + "\n" + 0;
 	private static final String URL_TO_KEYWORDS_STR =
 			"https://drive.google.com/uc?export=download&id=1h1RyP_m1j29jRES-TWj55Vg47BbppSoF";
 	
-	public static final boolean DOWNLOAD_KEYWORDS = false;
 	
 	private static final int MAX_INSPECTED_LOG_LINES = 70000;
-	private static final short MAX_INSPECTED_LOG_LINES_NAME = 400;
+	private static final short MAX_INSPECTED_LOG_LINES_NAME = 300;
 	
 	public static final File LOGS_DIR = new File(Constants.PATH_ROOT +  "\\AppData\\Roaming\\.minecraft\\logs");
 	public static final File ROAMING_DIR = new File(Constants.PATH_ROOT +"\\AppData\\Roaming");
@@ -67,50 +75,31 @@ public class Inspection extends Thread {
 	public static final File MINECRAFT_DIR = new File(Constants.PATH_ROOT + "\\AppData\\Roaming\\.minecraft");
 	public static final File DOWNLOADS_DIR = new File(Paths.get(Constants.PATH_ROOT, "Downloads").toString());
 	
+	public static final File LATEST_ZIP = new File(Constants.OWN_DIR + "\\latest.zip");
+	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
+	public static final File INFO_TXT = new File(Constants.OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
+	
+	public static final boolean DOWNLOAD_KEYWORDS = false;
 	public static final boolean LOGS_DIR_EXISTS = LOGS_DIR.exists();
 	public static final boolean DESKTOP_DIR_EXISTS = DESKTOP_DIR.exists();
 	public static final boolean DOWNLOADS_DIR_EXISTS = DOWNLOADS_DIR.exists();
 	public static final boolean MINECRAFT_DIR_EXISTS = MINECRAFT_DIR.exists();
 	public static final boolean VERSIONS_DIR_EXISTS = VERSIONS_DIR.exists();
-	
-	private boolean probablyWrongName;
-	private boolean probableHacker;
-	
-	private byte hackerIndicatorsCounter;
-	
-	private final ArrayList<String> errors;
-	private ArrayList<String> keywords;
-	private ArrayList<String> logKeywords;
-	private static final ArrayList<File> logs = new ArrayList<>();
-	
-	private String hackerIndicators;
-	private String playerName;
-	public String progress;
-	
-	private LocalDateTime lastInspectionDate;
-	private final List<String> foundHacksName;
-	private final Main main;
-	
-	public static final File LATEST_ZIP = new File(Constants.OWN_DIR + "\\latest.zip");
-	public static final File LATEST_LOG = new File(LOGS_DIR.getPath() + "\\latest.log");
-	public static final File INFO_TXT = new File(Constants.OWN_DIR.getPath() + "\\predesleKontrolyInfo.txt");
 	public static final boolean LATEST_LOG_EXISTS = LATEST_LOG.exists();
 	
-	public static final String WORD_SEPARATOR = " | ";
-	public static final String INITIAL_INFO = 0 + "\n" + 0;
 	public static final short MAIL_LATEST_LOG_LINES = 500;
 	public static final short MAIL_LOGS_KEYWORDS_LINES = 100;
 	public static final short MAX_AGE_OF_LOGS_TO_INSPECT_DAYS = 25;
+	
 	public static final DateTimeFormatter FORMATTER = 
-			DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+	DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+	
+	private final Main main;
+	private final Player player = new Player();
 	
 	public Inspection(Main main) {
 		printInspectionProgress("0.5");
-		
 		this.main = main;
-		errors = new ArrayList<>();
-		foundHacksName = Collections.synchronizedList(new ArrayList<>());
-		
 	}
 	
 	public void doInspection() {
@@ -126,19 +115,20 @@ public class Inspection extends Thread {
 					FileUtils.changeFileAttribute(INFO_TXT, "dos:hidden", false);	
 				} catch (Exception e) {
 					e.printStackTrace();
-				}	
+				}
 			}
 		}
 		
 		loadKeywords();
 		
-		String txtInfoStr = 
+		final String txtInfoStr = 
 				FileUtils.convertFileContentToString(INFO_TXT);
 		
 		String lastInspectionDateStr = getLine(txtInfoStr, 2);
+		
 		if (!lastInspectionDateStr.equals("0")) {
 			try {
-				lastInspectionDate = LocalDateTime.parse(lastInspectionDateStr, FORMATTER);		
+				player.setLastInspectionDate(LocalDateTime.parse(lastInspectionDateStr, FORMATTER));
 			} catch (Exception e) {
 				e.printStackTrace();
 				lastInspectionDateStr = "0";
@@ -148,18 +138,18 @@ public class Inspection extends Thread {
 			}
 		}
 		
-		long timeSinceLastInspectionMins = 0;
-		//progress
+
 		printInspectionProgress("2");
 		
-		if (!lastInspectionDateStr.equals("0")) {
+		long timeSinceLastInspectionMins = 0;
+		if (player.getLastInspectionDate() != null) {
 			try {
 				long currentEpochMillis = Instant.now().toEpochMilli();
-				Instant instant = lastInspectionDate.atZone(ZoneId.systemDefault()).toInstant();
+				Instant instant = player.getLastInspectionDate().atZone(ZoneId.systemDefault()).toInstant();
 				long lastInspectionEpochMillis = instant.toEpochMilli();
 				timeSinceLastInspectionMins =
 						getMillisDiff(currentEpochMillis, lastInspectionEpochMillis,
-								TimeUnit.MINUTES);
+							TimeUnit.MINUTES);
 			} catch (DateTimeParseException e) {
 				e.printStackTrace();
 				writeInitialInfo();
@@ -170,11 +160,13 @@ public class Inspection extends Thread {
 				FileUtils.createOwnDir();
 			}
 		}
+		player.setTimeSinceLastInspectionMins(timeSinceLastInspectionMins);
+		
 		//progress
 		printInspectionProgress("3");
 		
 		if (Constants.mode != Mode.DEBUG) {
-			if (timeSinceLastInspectionMins < 3 && timeSinceLastInspectionMins >= 1) {
+			if (player.getTimeSinceLastInspection(TimeUnit.MINUTES) < 3 && player.getTimeSinceLastInspection(TimeUnit.MINUTES) >= 1) {
 				interruptInspection("Doba od poslední kontroly je moc krátká, zkuste to pozdìji.",
 						true, null, false);
 			}	
@@ -185,10 +177,11 @@ public class Inspection extends Thread {
 				getMillisDiff(currentEpochMillis, VERSIONS_DIR.lastModified(), TimeUnit.MINUTES);
 		
 		if (lastVersionsModifInMins < 30 && lastVersionsModifInMins >= 0) {
-			addHackerIndicator("Složka versions byla upravována pøed ménì než 30 minutami");
+			player.addHackerIndication("Složka versions byla upravována pøed ménì než 30 minutami.");
 		}
 		printInspectionProgress("4");
 		
+		//START
 		ArrayList<String> namesOfFilesOnDesktopArr;
 		ArrayList<String> namesOfJarFilesInDownloadsArr;
 		ArrayList<String> namesOfFilesInVersionsArr;
@@ -229,6 +222,8 @@ public class Inspection extends Thread {
 			namesOfFilesOnDesktopArr = new ArrayList<>(Collections.singletonList(error));
 			errors.add(error);
 		}
+		//END
+		
 		
 		printInspectionProgress("6");
 		
@@ -252,8 +247,8 @@ public class Inspection extends Thread {
 		
 		
 		//now find keywords
-		Thread tDownloads = findKeywordsInDir(DOWNLOADS_DIR, keywords, null);
-		Thread tDesktop = findKeywordsInDir(DESKTOP_DIR, keywords, null);
+		Thread tDownloads = findKeywordsInDir(DOWNLOADS_DIR, fileKeywords, null);
+		Thread tDesktop = findKeywordsInDir(DESKTOP_DIR, fileKeywords, null);
 		
 		printInspectionProgress("8");
 		
@@ -265,11 +260,13 @@ public class Inspection extends Thread {
 		}
 		
 		File dirToSearch = /*ROAMING_DIR_EXISTS ? ROAMING_DIR : */MINECRAFT_DIR;
-		ArrayList<String> foundKeywords =
-				new FileSearch((String)null, keywords)
-				.searchFiles(dirToSearch, true, true,
-						new ArrayList<>(Collections.singletonList("assets")));
-		foundHacksName.addAll(foundKeywords);
+		player.addFoundHacks(
+				new FileSearch((String)null, fileKeywords)
+				.searchFiles(dirToSearch,
+							true,
+							true,
+							new ArrayList<>(Collections.singletonList("assets")))
+		);
 		
 		printInspectionProgress("9");
 		try {
@@ -286,64 +283,60 @@ public class Inspection extends Thread {
 		}
 		
 		printInspectionProgress("10");
-		String foundHackKeywordsStr = convertArrayToString(foundHacksName, WORD_SEPARATOR);
+		String foundHacksStr = convertArrayToString(player.getFoundHacks(), WORD_SEPARATOR);
 		
-		StringBuilder logLinesContainingKeyword = new StringBuilder();
-		int logLinesContainingKeywordCounter = 0;
 		currentEpochMillis = Instant.now().toEpochMilli();
 
 		if (LOGS_DIR_EXISTS) {
-			for (File log : Inspection.getLogs()) {
+			int logLinesContainingKeywordCounter = 0;
+			
+			for (File log : getLogs()) {
 				long lastModifEpochMillis = log.lastModified();
 				if (getMillisDiff(currentEpochMillis, lastModifEpochMillis, TimeUnit.DAYS)
 						< MAX_AGE_OF_LOGS_TO_INSPECT_DAYS) {
+					
 					if (log.getName().contains("debug")) {
 						continue;
 					}
 					
-					String logLineWithKeyword =
-							convertArrayToString
-							(getKeywordsContainedInLog
-									(log, logKeywords, true), "\n");
-					if (logLineWithKeyword != null) {
-						++logLinesContainingKeywordCounter;
+					ArrayList<String> logLinesContainingKeyword =
+							getKeywordsContainedInLog(log, logKeywords, true);
+					
+					if (!logLinesContainingKeyword.isEmpty()) {
+						logLinesContainingKeywordCounter += logLinesContainingKeyword.size();
 						if (logLinesContainingKeywordCounter >= MAIL_LOGS_KEYWORDS_LINES) {
 							break;
 						}
-						logLinesContainingKeyword.append(logLineWithKeyword);
+						
+						player.addLogLinesContainingKeyword(logLinesContainingKeyword);
 					}
 				}
-			}	
+			}
+			
 		} else {
 			String error = "složka s logy nebyla nalezena";
-			logLinesContainingKeyword.append("nebyla nalezena složka s logy");
 			errors.add(error);
 		}
 
-		ArrayList<String> hackerIndications =
-				analyseResults(namesOfFilesInVersionsArr, logLinesContainingKeywordCounter);
-		if (!hackerIndications.isEmpty()) {
-			for (String indicator : hackerIndications) {
-				addHackerIndicator(indicator);
-			}	
-		}
 		
-		String latestLogContent = "latest log nebyl nazelen/neexistuje";
+		StringBuilder latestLogContent = new StringBuilder();
 		if (LATEST_LOG_EXISTS) {
-			latestLogContent =
-					cutString(FileUtils.convertFileContentToString(LATEST_LOG), MAIL_LATEST_LOG_LINES);
+			latestLogContent.append(cutString(FileUtils.convertFileContentToString(LATEST_LOG), MAIL_LATEST_LOG_LINES));
 			try {
 				FileUtils.createZip(LATEST_LOG, LATEST_ZIP.toString(), null);
 			} catch (Exception e) {
 				errors.add("Nepodaøilo se zazipovat latest log.");
 				e.printStackTrace();
 			}
+		} else {
+			latestLogContent.append("latest log nebyl nazelen/neexistuje");
 		}
 		
 		 
-		short totalInspectionsNumber =
+		player.setTotalInspectionsNumber(
 				Short.parseShort(getLine(txtInfoStr, 1)
-						.replace("\\D+",""));
+					.replace("\\D+",""))
+			);
 		
 		printInspectionProgress("11W");
 		
@@ -358,50 +351,54 @@ public class Inspection extends Thread {
 				}	
 			}
 		}
-		++totalInspectionsNumber;
+		
+		player.addHackerIndications(analyseResults(namesOfFilesInVersionsArr));
+		
+		short totalInspectionsNumber = player.getTotalInspectionsNumber();
+		player.setTotalInspectionsNumber(++totalInspectionsNumber);
 		
 		printInspectionProgress("12");
 		String results = "verze programu: "
 					+ Constants.PROGRAM_VERSION + "<br><br>"
 				
 				+ "<b>Jméno hráèe: </b> "
-					+ playerName + "<br><br>"
+					+ player.getName() + "<br><br>"
 				
 				+ "<b>ovìøení jména: </b>"
-					+ (probablyWrongName ? "Za toto jméno pravdìpodobnì nebylo na tomto PC za posledních "
+					+ (player.isNameWrong() ? "Za toto jméno pravdìpodobnì nebylo na tomto PC za posledních "
 					+ MAX_AGE_OF_LOGS_TO_INSPECT_DAYS + " dní hráno!" : "jméno je pravdìpodobnì správné") + "<br><br>"
 				
 				+ "<b>pravdìpodobný hacker: "
-					+ (probableHacker ? "ano</b> - dùvody: " + "<br>" + hackerIndicators : "ne</b>") + "<br><br>"
+					+ (player.isHacker() ? "ano</b> - dùvody: " + "<br>" + player.getHackerIndications() : "ne</b>") + "<br><br>"
 				
 				+ "<b>celkový poèet kontrol provedených na tomto PC: </b><br>"
-					+ totalInspectionsNumber + "<br><br>"
+					+ player.getTotalInspectionsNumber() + "<br><br>"
 				
 				+ "<b>Pøedešlá kontrola probìhla pøed: </b><br>"
-					+ (totalInspectionsNumber <= 1 ? "žádné pøedešlé kontroly neprobìhly" :
+					+ (player.getTotalInspectionsNumber() <= 1 ? "žádné pøedešlé kontroly neprobìhly" :
 					convertMinutesDiffToWords(timeSinceLastInspectionMins)
-							+ " (" + (lastInspectionDate == null ? "datum bylo poškozené,"
+							+ " (" + (player.getLastInspectionDate() == null ? "datum bylo poškozené,"
 									+ " nejspíše zapsáno starší verzí programu. Probìhla oprava." :
-								lastInspectionDate.format(FORMATTER)) + ")") + "<br><br>"
+								player.getLastInspectionDate().format(FORMATTER)) + ")") + "<br><br>"
 				
 				+ "<b>nalezené soubory jež se shodují se jménem hackù: </b><br>"
-					+ (foundHacksName.isEmpty() ? "žádné" : foundHackKeywordsStr) + "<br><br>"
+					+ (player.getFoundHacks().isEmpty() ? "žádné" : foundHacksStr) + "<br><br>"
 				
 				+ "<b>Øádky z logù za posledních " + MAX_AGE_OF_LOGS_TO_INSPECT_DAYS + " dní, ve kterých byly"
 					+ " nalezeny klíèové slova (max. " + MAIL_LOGS_KEYWORDS_LINES + "):</b><br>"
-					+ (logLinesContainingKeyword == null ? "žádné" : logLinesContainingKeyword) + "<br><br>"
+					+ (player.getLogLinesContainingKeyword().isEmpty() ? "žádné" : convertArrayToString(player.getLogLinesContainingKeyword(), "\n")) + "<br><br>"
 				
 				+ "<b>názvy souborù ve složce versions v hloubce 1: </b><br>"
-					+ (namesOfMinecraftFiles == null ? "žádné" : namesOfMinecraftFiles) + "<br><br>"
+					+ (namesOfMinecraftFiles.isEmpty() ? "žádné" : namesOfMinecraftFiles) + "<br><br>"
 				
 				+ "<b>Názvy všech \"jar\" souborù ve složce stažené: </b><br>"
-					+ (namesOfDownloadsJarFiles == null ? "žádné" : namesOfDownloadsJarFiles) + "<br><br>"
+					+ (namesOfDownloadsJarFiles.isEmpty() ? "žádné" : namesOfDownloadsJarFiles) + "<br><br>"
 				
 				+ "<b>Názvy všech \"exe\" souborù ve složce stažené: </b><br>"
-					+ (namesOfDownloadsExeFiles == null ? "žádné" : namesOfDownloadsExeFiles) + "<br><br>"
+					+ (namesOfDownloadsExeFiles.isEmpty() ? "žádné" : namesOfDownloadsExeFiles) + "<br><br>"
 				
 				+ "<b>Názvy všech \"jar\" souborù na ploše: </b><br>"
-					+ (namesOfDesktopJarFiles == null ? "žádné" : namesOfDesktopJarFiles) + "<br><br>"
+					+ (namesOfDesktopJarFiles.isEmpty() ? "žádné" : namesOfDesktopJarFiles) + "<br><br>"
 				
 				+ "<b>Názvy souborù ve složce .minecraft ve hloubce 1: </b><br>"
 					+ foundKeywordsInMinecraft + "<br><br>"
@@ -420,7 +417,7 @@ public class Inspection extends Thread {
 		
 		Platform.runLater(() -> main.changeInspectionState("Odesílání výsledkù"));
 		
-		String title = "Kontrola hráèe " + playerName;
+		String title = "Kontrola hráèe " + player.getName();
 		String content;
 		if (LATEST_LOG_EXISTS) {
 			content = results + "<br><br>----------------------------------------------------------------------------"
@@ -431,26 +428,26 @@ public class Inspection extends Thread {
 					+ "<br><b>Latest log nebyl nalezen/neexistuje. </b>";
 		}
 		
-		String chyba = null;
+		String error = null;
 		
 		if (Constants.mode == Mode.BASICLAND && UpdateManager.isProgramInIDE()) {
 			System.out.println("title: " + title);
 			System.out.println("content: " + content);
 		} else {
 			if (LATEST_LOG_EXISTS) {
-				chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
+				error = Email.sendMail(main.getCurrentServer().getMail(), title,
 						content, LATEST_ZIP.getPath(), "latest_log.zip");
 			} else {
-				chyba = Email.sendMail(main.getCurrentServer().getMail(), title,
+				error = Email.sendMail(main.getCurrentServer().getMail(), title,
 						content);
 			}
 		}
 		
-		if (chyba != null) {
-			interruptInspection(chyba, true, null, false);
+		if (error != null) {
+			interruptInspection(error, true, null, false);
 		}
 		
-		updatePreviousInspectionsInfo(INFO_TXT, totalInspectionsNumber,
+		updatePreviousInspectionsInfo(INFO_TXT, player.getTotalInspectionsNumber(),
 				LocalDateTime.now().format(FORMATTER));
 		
 		printInspectionProgress("14F");
@@ -469,7 +466,7 @@ public class Inspection extends Thread {
 		}
 	}
 	
-	private ArrayList<String> analyseResults(ArrayList<String> namesOfFilesInVersionsArr, int logLinesContainingKeywordCounter) {
+	private ArrayList<String> analyseResults(ArrayList<String> namesOfFilesInVersionsArr) {
 		ArrayList<String> hackerIndications = new ArrayList<>();
 		
 		boolean versionNamesAreNotStandard = false;
@@ -486,17 +483,26 @@ public class Inspection extends Thread {
 			convertArrayToString(namesOfNotStandardDirs, WORD_SEPARATOR) + ")");
 		}
 
-		if (!foundHacksName.isEmpty()) {
+		if (!player.getFoundHacks().isEmpty()) {
 			hackerIndications.add("Byly nalezeny soubory, které jsou pravdìpodobnì hacky.");
 		}
 		
-		if (logLinesContainingKeywordCounter != 0) {
+		if (!player.getLogLinesContainingKeyword().isEmpty()) {
 			hackerIndications.add("Byla nalezena podezøelá klíèová slova v log souborech.");
 		}
+		
+		if (player.getTotalInspectionsNumber() > 2) {
+			hackerIndications.add(player.getName() + " byl celkovì prošetøován > 2x.");
+		}
+		
+		if (player.getTimeSinceLastInspection(TimeUnit.DAYS) < 5) {
+			hackerIndications.add(player.getName() + " byl za posledních 5 dní prošetøován >= 2x.");
+		}
+		
 		return hackerIndications;
 	}
 	
-	public String cutString(String text, int maxNumberOfLines) {
+	public StringBuilder cutString(String text, int maxNumberOfLines) {
 		String[] lines = text.split("\\r?\\n");
 		StringBuilder allLines = new StringBuilder();
 
@@ -504,16 +510,16 @@ public class Inspection extends Thread {
 			allLines.append(lines[i]).append("\n");
 		}
 		
-		return allLines.toString();
+		return allLines;
 	}
 	
 	public void supplyData(String playerName, boolean probablyWrongName) {
-		this.playerName = playerName;
-		this.probablyWrongName = probablyWrongName;
+		player.setName(playerName);
+		player.setNameWrong(probablyWrongName);
 	}
 	
 	private Thread findKeywordsInDir(File dir, ArrayList<String> keywords, ArrayList<String> subDirsToSkip) {
-		return new Thread(() -> foundHacksName.addAll(
+		return new Thread(() -> player.addFoundHacks(
 				new FileSearch((String)null, keywords)
 				.searchFiles(dir, true, true, subDirsToSkip)));
 	}
@@ -568,12 +574,12 @@ public class Inspection extends Thread {
 			setBackupKeywords();
 			return;
 		}
-		this.keywords = keywords;
+		this.fileKeywords = keywords;
 		this.logKeywords = logKeywords;
 	}
 	
 	private void setBackupKeywords() {
-		this.keywords = BACKUP_KEYWORDS;
+		this.fileKeywords = BACKUP_KEYWORDS;
 		this.logKeywords = BACKUP_LOG_KEYWORDS;
 	}
 	
@@ -587,27 +593,23 @@ public class Inspection extends Thread {
 		}
 	}
 	
-	private void addHackerIndicator(String reason) {
-		++hackerIndicatorsCounter;
-		probableHacker = true;
-		hackerIndicators =
-				(hackerIndicators == null ? hackerIndicatorsCounter + ". " :
-					hackerIndicators + "\n" + hackerIndicatorsCounter + ". ") + reason;
-	}
-	
 	private String convertArrayToString(ArrayList<String> array, String separator) {
 		StringBuilder finalString = new StringBuilder();
 
 		for (String item : array) {
-			finalString.append(finalString == null ? "" : separator).append(item);
+			finalString.append(item).append(separator);
 		}
 		
+		if (finalString.length() != 0) {
+			if (finalString.substring((finalString.length() - 1) -(separator.length() - 1)).equals(separator)) {
+				finalString.delete((finalString.length() - 1) - (separator.length() - 1), (finalString.length() - 1));
+			}	
+		}
 		return finalString.toString();
 	}
 	
 	private String convertArrayToString(List<String> array, String separator) {
-		ArrayList<String> array2 = new ArrayList<>(array);
-		return convertArrayToString(array2, separator);
+		return convertArrayToString(new ArrayList<>(array), separator);
 	}
 
 
@@ -615,7 +617,7 @@ public class Inspection extends Thread {
 	private ArrayList<String> getKeywordsContainedInLog(File log, ArrayList<String> keywords, boolean returnWholeLine) {
 		ArrayList<String> containedKeywords = new ArrayList<>();
 		if (!log.exists()) {
-			return null;
+			return containedKeywords;
 		}
 		
 		try {
