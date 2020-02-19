@@ -13,8 +13,6 @@ import javafx.scene.control.Alert.AlertType;
 
 import java.io.*;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -220,10 +218,10 @@ public class Inspection extends Thread {
 		
 		printInspectionProgress("6");
 		
-		String namesOfMinecraftFiles =
+		String namesOfVersionsDirFiles =
 				convertArrayToString(namesOfFilesInVersionsArr, WORD_SEPARATOR);
 		
-		String foundKeywordsInMinecraft =
+		String namesOfMinecraftDirFiles =
 				convertArrayToString(namesOfFilesInMinecraftArr, WORD_SEPARATOR);
 
 		String namesOfDownloadsJarFiles =
@@ -382,7 +380,7 @@ public class Inspection extends Thread {
 					+ (player.getLogLinesContainingKeyword().isEmpty() ? "žádné" : convertArrayToString(player.getLogLinesContainingKeyword(), "\n")) + "<br><br>"
 				
 				+ "<b>názvy souborù ve složce versions v hloubce 1: </b><br>"
-					+ (namesOfMinecraftFiles.isEmpty() ? "žádné" : namesOfMinecraftFiles) + "<br><br>"
+					+ (namesOfVersionsDirFiles.isEmpty() ? "žádné" : namesOfVersionsDirFiles) + "<br><br>"
 				
 				+ "<b>Názvy všech \"jar\" souborù ve složce stažené: </b><br>"
 					+ (namesOfDownloadsJarFiles.isEmpty() ? "žádné" : namesOfDownloadsJarFiles) + "<br><br>"
@@ -394,7 +392,7 @@ public class Inspection extends Thread {
 					+ (namesOfDesktopJarFiles.isEmpty() ? "žádné" : namesOfDesktopJarFiles) + "<br><br>"
 				
 				+ "<b>Názvy souborù ve složce .minecraft ve hloubce 1: </b><br>"
-					+ foundKeywordsInMinecraft + "<br><br>"
+					+ namesOfMinecraftDirFiles + "<br><br>"
 				
 				+ "<b>složka versions naposledy upravována pøed: </b><br>" 
 					+ convertMinutesDiffToWords(lastVersionsModifInMins)
@@ -485,11 +483,11 @@ public class Inspection extends Thread {
 		}
 		
 		if (player.getTotalInspectionsNumber() > 2) {
-			hackerIndications.add(player.getName() + " byl celkovì prošetøován > 2x.");
+			hackerIndications.add(player.getName() + " byl celkovì prošetøován >2x.");
 		}
 		
 		if (player.getTimeSinceLastInspection(TimeUnit.DAYS) < 5) {
-			hackerIndications.add(player.getName() + " byl za posledních 5 dní prošetøován >= 2x.");
+			hackerIndications.add(player.getName() + " byl za posledních 5 dní prošetøován >=2x.");
 		}
 		
 		return hackerIndications;
@@ -529,11 +527,8 @@ public class Inspection extends Thread {
 		ArrayList<String> logKeywords = new ArrayList<>();
 		
 		try {
-			ReadableByteChannel rbc = Channels.newChannel(new URL(URL_TO_KEYWORDS_STR).openStream());
-			FileOutputStream fos = new FileOutputStream(fileWithKeywords);
-			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-		    fos.close();
-		    rbc.close();
+		    FileUtils.download(new URL(URL_TO_KEYWORDS_STR), fileWithKeywords.getPath());
+		    
 		    String downloadedKeywords = FileUtils.convertFileContentToString(fileWithKeywords);
 			FileUtils.deleteFile(fileWithKeywords);
 			//a check if the website from where the keywords are downloaded is up and that the downloaded file is really

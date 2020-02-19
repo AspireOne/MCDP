@@ -9,6 +9,10 @@ import net.lingala.zip4j.model.enums.CompressionMethod;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 import java.io.*;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -50,6 +54,16 @@ public class FileUtils {
 		if (canWrite) {
 			file.setWritable(true);
 		}
+	}
+	
+	public static void download(URL url, String destination) throws Exception {
+		ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+		FileOutputStream fos = new FileOutputStream(destination);
+		FileChannel fch = fos.getChannel();
+		
+		fch.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+		fos.close();
+		fch.close();
 	}
 	
 	public static String convertFileContentToString(File file) {

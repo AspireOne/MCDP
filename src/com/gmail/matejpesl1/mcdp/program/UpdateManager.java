@@ -1,12 +1,8 @@
 package com.gmail.matejpesl1.mcdp.program;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Scanner;
 
 import com.gmail.matejpesl1.mcdp.frontend.Main;
@@ -43,16 +39,6 @@ public class UpdateManager {
 		String tag = releaseInfo.substring(numBeginChar, numEndChar);
 		System.out.println("latest version: " + tag);
 		return Float.parseFloat(tag);
-	}
-	
-	private void download(URL url, String destination) throws Exception {
-		ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
-		FileOutputStream fos = new FileOutputStream(destination);
-		FileChannel fch = fos.getChannel();
-		
-		fch.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-		fos.close();
-		fch.close();
 	}
 	
 	private void loadUrls() throws MalformedURLException {
@@ -99,7 +85,7 @@ public class UpdateManager {
 	}
 	
 	public void downloadUpdate() throws Exception {
-			download(updateUrl, UPDATE_FILE.getPath());
+			FileUtils.download(updateUrl, UPDATE_FILE.getPath());
 			downloaded = true;
 	}
 	
