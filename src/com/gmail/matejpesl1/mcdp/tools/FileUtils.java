@@ -20,6 +20,7 @@ import java.time.ZoneId;
 import java.util.zip.GZIPInputStream;
 
 public class FileUtils {
+	
 	private FileUtils() {
 		
 	}
@@ -109,7 +110,7 @@ public class FileUtils {
 	}
 	
 	public static void createOwnDir() {
-		if (!Constants.OWN_DIR.exists()) {
+		if (Constants.OWN_DIR.exists()) {
 			return;
 		}
 		boolean dirCreated = Constants.OWN_DIR.mkdir();

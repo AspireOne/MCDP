@@ -23,7 +23,7 @@ public class FileSearch implements FileVisitor<Path> {
 	private String nameOfStartingDir;
 	private static final ArrayList<String> DEFAULT_EXTENSIONS_TO_SEARCH =
 			new ArrayList<>(Arrays.asList("jar", "zip", "rar", "gz", "log","txt","json",
-					"exe", "dat", "mcmeta", "html", "cfg", "token", "properties", ""));
+					"exe", "dat", "mcmeta", "html", "cfg", "token", "properties", ""/*= folder */));
 	
 	public FileSearch(ArrayList<String> extensions, ArrayList<String> keywords) {
 		this.extensions = extensions;
@@ -31,10 +31,10 @@ public class FileSearch implements FileVisitor<Path> {
 	}
 	
 	public FileSearch(String extension, ArrayList<String> keywords) {
-		if (extension == null) {
-			this.extensions = null;
-		} else {
+		if (extension != null) {
 			this.extensions = new ArrayList<>(Collections.singletonList(extension));
+		} else {
+			this.extensions = null;
 		}
 		this.keywords = keywords;
 	}
@@ -62,18 +62,18 @@ public class FileSearch implements FileVisitor<Path> {
 	
 	@Override
 	public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) {
-		String dirName = dir.getFileName().toString();
+		String dirName = dir.getFileName().toString().toLowerCase();
 		String pathToDir = dir.toString();
 		if (namesOfDirsToSkip != null && namesOfDirsToSkip.parallelStream().anyMatch(dirName::equals)) {
 			return FileVisitResult.SKIP_SUBTREE;
 		}
-		
+
 		if (dirName.equals(nameOfStartingDir) || extensions != null) {
 			return FileVisitResult.CONTINUE;
 		}
 		
 		if (keywords != null) {
-			if (keywords.parallelStream().anyMatch(dirName.toLowerCase().trim()::contains)) {
+			if (keywords.parallelStream().anyMatch(dirName::contains)) {
 				finalFiles.add(returnFileNames ? dirName + " (složka)": pathToDir);
 			}
 		} else {
@@ -88,12 +88,13 @@ public class FileSearch implements FileVisitor<Path> {
 	
 	@Override
 	public FileVisitResult visitFile(Path filePath, BasicFileAttributes attributes) {
-		String filename = filePath.getFileName().toString();
-		String pathToFile = filePath.toString();
+		String filename = filePath.getFileName().toString().toLowerCase();
 		String fileExtension = filePath.toFile().isDirectory() ? "" : filename.substring(filename.lastIndexOf(".") + 1);
+		String pathToFile = filePath.toString();
 		boolean extensionEquals = false;
 		boolean keywordEquals = false;
-		if (DEFAULT_EXTENSIONS_TO_SEARCH.parallelStream().noneMatch(fileExtension.toLowerCase().trim()::matches)) {
+		
+		if (DEFAULT_EXTENSIONS_TO_SEARCH.parallelStream().noneMatch(fileExtension::matches)) {
 			return FileVisitResult.CONTINUE;
 		}
 		
@@ -110,7 +111,7 @@ public class FileSearch implements FileVisitor<Path> {
 			return FileVisitResult.CONTINUE;
 		}
 		if (keywords != null) {
-			boolean containsKeyword = keywords.parallelStream().anyMatch(filename.toLowerCase().trim()::contains);
+			boolean containsKeyword = keywords.parallelStream().anyMatch(filename::contains);
 			if (containsKeyword) {
 				keywordEquals = true;
 			} 
