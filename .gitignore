@@ -18,6 +18,7 @@ bin
 
 #Intellij IDEA
 out
+/workspace.xml
 
 # Package Files #
 *.jar
